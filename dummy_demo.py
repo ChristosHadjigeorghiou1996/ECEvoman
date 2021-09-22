@@ -60,7 +60,7 @@ elif experiment_type == "":
 # size of individuals
 individuals_size = (env.get_num_sensors()+1)*hidden_neurons + (hidden_neurons+1)*5
 # population size made of n individuals
-population_size = 5
+population_size = 100
 # max generations to run
 generations = 20
 # max iterations to run without improvement to indicate stagnation
