@@ -305,7 +305,7 @@ def save_array_to_files_with_defined_parameters(experiment_name_folder, folder_n
 
 def load_numpy_files(first_algorithm_folder, specific_name_of_folder, specific_run):
     print(os.getcwd())
-    os.chdir(os.getcwd() +'/' +first_algorithm_folder+'/' +specific_name_of_folder+'/'+specific_run')
+    os.chdir(os.getcwd() +'/' +first_algorithm_folder+'/' +specific_name_of_folder+'/'+specific_run+'_run')
 
     print(f'new_directory: {os.getcwd()}')
     # os.chdir(path_till_numpy_files)
