@@ -67,7 +67,7 @@ elif experiment_type == "":
 # size of individuals
 individuals_size = (env.get_num_sensors()+1)*hidden_neurons + (hidden_neurons+1)*5
 # population size made of n individuals
-population_size = 10
+population_size = 20
 # max generations to run
 maximum_generations = 5
 # total runs to run
@@ -116,14 +116,18 @@ def test_individual(individual, env):
     return individual, individual_info
 
 # iterate over the population and estimate the fitness to get the mean
-def get_population_information(population, env): 
+def get_population_information(population, env):
+    # list with population_fitness and population individuals 
+    combined_list_population_individual_fitness= []
     population_fitness_array = np.zeros(shape=population.shape[0])
     for individual_position in range(population.shape[0]):
         # check if i ever need individual 
         current_individual, individual_information= test_individual(population[individual_position], env)
         # print(f'individual_information: {individual_information} [0]: {individual_information[0]}')
         population_fitness_array[individual_position] = individual_information[0]
+        combined_list_population_individual_fitness.append([current_individual, individual_information[0]]) 
         # print(f'population_fitness_array:{population_fitness_array}')
+
     # find the most fit value 
     most_fit_value_position = np.argmax(population_fitness_array)
     most_fit_individual = population[most_fit_value_position]
@@ -135,8 +139,9 @@ def get_population_information(population, env):
     # find standard deviation of population
     standard_deviation_population = np.std(population_fitness_array)
     print(f'standard_deviation_population: {standard_deviation_population}')
+    print(f'combined_list_population_individual_fitness: {combined_list_population_individual_fitness}')
     
-    return population_fitness_array, most_fit_value, most_fit_individual, mean_fitness_population, standard_deviation_population
+    return combined_list_population_individual_fitness, population_fitness_array, most_fit_value, most_fit_individual, mean_fitness_population, standard_deviation_population
 
 # randomly select two parents in the population and combine to produce two children per alpha parameter --> 6  
 # instead of producing two children, produce more lets say 4-6 children and then populate to decide on the fitter version 
@@ -182,10 +187,6 @@ def crossover_two_parents_alpha_uniform(first_parent, second_parent):
     return number_of_offsprings_array
 
 
-# def blend_crossover
-#     # abs distance between parents 
-    
-
 # randomly select two parents and ensure they are not the same from given population
 def randomly_select_two_individuals(provided_population):
     # print(f'provided_population.shape: {provided_population.shape}')
@@ -211,6 +212,18 @@ def randomly_select_two_individuals(provided_population):
 
     return parent_one, parent_two, remaining_population
 
+# rank based selection to sort population and give probabilities according to fitness 
+def rank_based_selection(lista_population_value_and_fitness):
+    sorted_list = sorted(lista_population_value_and_fitness, key=lambda fitness: fitness[1], reverse=True)
+    # print(f'sorted_list: {sorted_list[:3]}')
+    # x_new = (x_i - x_min) / x_max - x_min 
+    get_max= sorted
+    mask = [ (element <= 0) for element in sorted_list]
+    check_less_zero= [(x <= 0) for x in sorted_list[1]]
+    return sorted_list
+    
+     
+    
 
 
 def mutate_individual(individual, current_generation, total_number_of_generations):
@@ -241,20 +254,28 @@ def mutate_individual(individual, current_generation, total_number_of_generation
     return individual
         # maybe consider uniform from -1 to 1 instead 
     
-def create_new_population_two_parents_two_offsprings(old_population, cur_generation, max_generations):
+def create_new_population_two_parents_two_offsprings(list_population_values_fitness, old_population, old_population_fitness, cur_generation, max_generations):
     # cross over alpha parameter varying to create more offsprings. sharing most / a lot of information in each child 
-    cross_over_alpha_parameter_array= np.array([0.1, 0.25, 0.4])
+    # cross_over_alpha_parameter_array= np.array([0.1, 0.25, 0.4])
     # print(f'old_population.shape: {old_population.shape} and values: {old_population}')
+
+    # same size population is maintained 
     next_generation_population=np.zeros_like(old_population)
     # print(f'next_generation_population.shape: {next_generation_population.shape} and values: {next_generation_population}')
+    
 
+    rank_based_population = rank_based_selection(list_population_values_fitness )
+    print('de panw')
+
+    # Randomly select parents 
     # go two steps each time removing two parents and creating two offsprings which are added to the new population. Stop until we are done whichi s of same size.
     for individual_position in range(0, old_population.shape[0], 2):
         # select two parents from the population ensuring they are not the same and forgetting them from the population which assumes they reproduce once 
         parent_one, parent_two, old_population= randomly_select_two_individuals(old_population)
-        # Method 1 - crossover with alpha parameter array to produce 6 children  
+        # ********** Method 1 - crossover with alpha parameter array to produce 6 children  
         # offspring_array= crossover_two_parents_six_children(parent_one, parent_two, cross_over_alpha_parameter_array)
-        # Method 2 - crossover with alpha parameter uniform - 2 children
+
+        # ********** Method 2 - crossover with alpha parameter uniform - 2 children
         offspring_array= crossover_two_parents_alpha_uniform(parent_one, parent_two)
         # mutate every individual
         mutated_offspring_array= np.zeros(shape=(offspring_array.shape))
@@ -376,14 +397,35 @@ def visualize_box_plot(array, folder_name, algorithm_name ):
     plt.savefig(f'{algorithm_name}_box_plot.png')
     plt.close()
 
+def draw_box_plot(average_fitness_all_runs_per_generation, max_fitness_all_runs_per_generation, standard_deviation_average_fitness_all_runs_per_generation, standard_deviation_max_fitness_all_runs_per_generation):
+    number_of_generations_array= list(np.arange(len(average_fitness_all_runs_per_generation)))
+    plt.errorbar(number_of_generations_array, max_fitness_all_runs_per_generation, yerr= standard_deviation_max_fitness_all_runs_per_generation,ecolor="black", label="Max Fitness")
+    plt.errorbar(number_of_generations_array, average_fitness_all_runs_per_generation, yerr= standard_deviation_average_fitness_all_runs_per_generation ,ecolor="black", label="Average Fitness", )
+    plt.legend(loc="center")
+    plt.title('Average and max fitness of all runs per generation')
+    plt.xlabel('Generations')
+    plt.savefig('line_plot.png')
+    plt.show()
+
 if __name__ == '__main__':
     for enemy in list_of_enemies:
         # env.update_parameter('enemies', [enemy])
         # log state of the env
         # env.state_to_log()
+        
+        # Line plot array for each generation per run - have run in rows and generations in columns and then pick up columnwise via [:, generation_number]
+        max_fitness_ten_runs_twenty_generations_array= np.zeros(shape=(total_runs, maximum_generations)) 
+        max_individual_value_ten_runs_twenty_generations_array= np.zeros(shape=(total_runs, individuals_size))
+        mean_fitness_ten_runs_twenty_generations_array= np.zeros(shape=(total_runs, maximum_generations))
+        standard_deviation_ten_runs_twenty_generations_array= np.zeros(shape=(total_runs, maximum_generations))
+ 
+        # ******* Box plot array 
         # create a total_runs array for the five_times run of best_individuals 
         ten_runs_five_times_individuals_arrays = np.zeros(shape=(total_runs))
         for current_run in range(total_runs):
+            # keep a counter for the maximum of each generation and change it to this if fitness is more 
+            # initialize a best counter score so that the first value is compareable
+            max_individual_score_current_run= 0
             print(f'******************************Starting run {current_run} / {total_runs - 1}')
             # keep records of the best individual fitness, best individual, mean and sd of each population
             best_individuals_fitness_populations_array = np.zeros(shape=(maximum_generations))
@@ -395,39 +437,28 @@ if __name__ == '__main__':
                 # add stagnation 
                 # if maximum_improvement_counter != improvement_counter:
                 if new_generation == 0:
-
-
-                    # print(f'best_individuals_array:\n{best_individuals_array}\n and shape: {best_individuals_array.shape}')
                     generation_population = create_random_uniform_population(population_size, individuals_size)
-                    # best_individual, best_individual_information, mean_fitness_population = find_best_individual(generation_population, env)
-                    # save the values to the respective arrays
-                    # best_individuals_array[new_generation] = best_individual_information
-                    # print(f'best_individuals_array:\n{best_individuals_array}')
-                    # mean_fitness_populations_array[new_generation] = mean_fitness_population
-                    # print(f'mean_fitness_populations_array:\n{mean_fitness_populations_array}')
-                    population_fitness_array, best_individual_fitness, best_individual_value, average_fitness_population, standard_deviation_population = get_population_information(generation_population, env) 
-                    best_individuals_fitness_populations_array[new_generation] = best_individual_fitness
-                    best_individuals_value_populations_array[new_generation] = best_individual_value
-                    mean_fitness_populations_array[new_generation] = average_fitness_population
-                    standard_deviation_populations_array[new_generation] = standard_deviation_population
-                    
-                    continue
-                # print(f'before current generation best_individuals_array:\n{best_individuals_array}')
-                # print(f'old_population:\n{generation_population}')
-                generation_population = create_new_population_two_parents_two_offsprings(generation_population, new_generation, maximum_generations)
-                # print(f'new_population:\n{generation_population}')
-                # print(f'generation_population.shape:{generation_population.shape}')
+                else: 
+                    generation_population = create_new_population_two_parents_two_offsprings(combined_list_population_values_and_fitness, generation_population, population_fitness_array, new_generation, maximum_generations)
+                # get population information
+                combined_list_population_values_and_fitness ,population_fitness_array, best_individual_fitness, best_individual_value, average_fitness_population, standard_deviation_population = get_population_information(generation_population, env) 
                 
-                # add the values to the respective arrays
-                # best_individual, best_individual_information, mean_fitness_population = find_best_individual(generation_population, env)
-                # best_individuals_array[new_generation] = best_individual_information
-                # mean_fitness_populations_array[new_generation] = mean_fitness_population
-                population_fitness_array, best_individual_fitness, best_individual_value, average_fitness_population, standard_deviation_population = get_population_information(generation_population, env)
+                # box plots 
                 best_individuals_fitness_populations_array[new_generation] = best_individual_fitness
                 best_individuals_value_populations_array[new_generation] = best_individual_value
                 mean_fitness_populations_array[new_generation] = average_fitness_population
                 standard_deviation_populations_array[new_generation] = standard_deviation_population
-                # print(f'best_individuals_array:\n{best_individuals_array}')
+                # line plot arrays
+                max_fitness_ten_runs_twenty_generations_array[current_run][new_generation] = best_individual_fitness
+                # check about the max individual in the current run
+                if best_individual_fitness > max_individual_score_current_run:
+                    max_individual_score_current_run = best_individual_fitness
+                    # print(f'max_individual_score_current_run: {max_individual_score_current_run}')
+                    max_individual_value_ten_runs_twenty_generations_array[current_run] = best_individual_value
+                    # print(f'max_individual_value_ten_runs_twenty_generations_array[current_run]: {max_individual_value_ten_runs_twenty_generations_array[current_run]}')
+                mean_fitness_ten_runs_twenty_generations_array[current_run][new_generation] = average_fitness_population
+                standard_deviation_ten_runs_twenty_generations_array[current_run][new_generation]= standard_deviation_population
+                # update solution of environment 
                 env.update_solutions([generation_population, population_fitness_array, best_individuals_fitness_populations_array, best_individuals_value_populations_array, mean_fitness_populations_array, standard_deviation_populations_array]) 
 
             print("*******************************************************STATISTICS*****************************")
@@ -435,13 +466,79 @@ if __name__ == '__main__':
             print(f'\nbest_individuals_value_populations_array:\n{best_individuals_value_populations_array}')
             print(f'\nmean_fitness_populations_array:\n{mean_fitness_populations_array}')
             print(f'\nstandard_deviation_populations_array:\n{standard_deviation_populations_array}')
-            
             # Box Plot Data
                 # find best individual of all generations
             best_individual_fitness_position_all_generations = np.argmax(best_individuals_fitness_populations_array)
             print(f'\nbest_individual_fitness_position_all_generations:\n{best_individual_fitness_position_all_generations}')
             best_individual_value_all_generations= best_individuals_value_populations_array[best_individual_fitness_position_all_generations]
             print(f'\nbest_individual_value_all_generations:\n{best_individual_value_all_generations}')
+
+            # Since we have the big arrays for all runs per generation, consider taking the values from the overall instead of having twice the arrays
+            # try to get fittest individual from all generations of each run 
+            print(f'max_fitness_ten_runs_twenty_generations_array:\n {max_fitness_ten_runs_twenty_generations_array}')
+            
+            # go over each run and find the best individual of all generations and add it to max_fitness
+            max_fitness_all_generations_per_run= np.zeros(shape=total_runs)
+
+
+            for run_counter in range(total_runs):
+                # current run of max fitness of all generations
+                current_run_max_array=max_fitness_ten_runs_twenty_generations_array[run_counter]
+                print(f'current_run_array: {current_run_max_array}')
+                current_run_max_value_position= np.argmax(current_run_max_array)
+                max_value_current_run= current_run_max_array[current_run_max_value_position]
+                print(f'max_value_current_run: {max_value_current_run}')
+                max_fitness_all_generations_per_run[run_counter]= max_value_current_run
+
+                # current run of mean fitness of all generations
+                # current_run_average_fitness_array= mean_fitness_ten_runs_twenty_generations_array[run_counter]
+                # print(f'current_run_average_fitness_array: {current_run_average_fitness_array}')
+                # current_run_average_fitness= np.average(current_run_max_array)
+                # average_fitness_all_generations_per_run[run_counter]= current_run_average_fitness
+            
+            # only the max fitness of all generations per run
+            print(f'max_fitness_all_generations_per_run:\n{max_fitness_all_generations_per_run}')
+            # play 5 times with the max fitness individual - ****need to get the max individual 
+
+            # mean fitness of all 
+            
+            max_fitness_first_generation_all_runs= max_fitness_ten_runs_twenty_generations_array[:, 0]
+            print(f'max_fitness_first_generation_all_runs: {max_fitness_first_generation_all_runs}')
+
+            print(f'mean_fitness_ten_runs_twenty_generations_array: {mean_fitness_ten_runs_twenty_generations_array}')
+
+            #******* Line plot Average and max  # COnsider make box plot with line plot arrays
+
+            # get average fitness and standarddeviation for all runs per generation 
+            average_fitness_all_runs_per_generation= np.zeros(shape=maximum_generations)
+            standard_deviation_average_fitness_all_runs_per_generation= np.zeros(shape=maximum_generations)
+            
+
+            # get max fitness and standard deviation for all runs per generation
+            max_fitness_all_runs_per_generation= np.zeros(shape= maximum_generations)
+            standard_deviation_max_fitness_all_runs_per_generation= np.zeros(shape=maximum_generations)
+
+            for generation_counter in range(maximum_generations):
+                # average fitness 
+                current_generation_average_fitness= mean_fitness_ten_runs_twenty_generations_array[:, generation_counter]
+                # print(f'current_generation_average_fitness: {current_generation_average_fitness}')
+                average_fitness_all_runs_per_generation[generation_counter]= np.mean(current_generation_average_fitness)
+                standard_deviation_average_fitness_all_runs_per_generation[generation_counter]= np.std(current_generation_average_fitness)
+
+                # max fitness 
+                current_generation_max_fitness= max_fitness_ten_runs_twenty_generations_array[:, generation_counter]
+                # print(f'current_generation_max_fitness: {current_generation_max_fitness}')
+                max_fitness_all_runs_per_generation[generation_counter]= np.max(current_generation_max_fitness)
+                standard_deviation_max_fitness_all_runs_per_generation[generation_counter]= np.std(current_generation_max_fitness)
+
+            print(f'average_fitness_all_runs_per_generation: {average_fitness_all_runs_per_generation}')
+            print(f'standard_deviation_average_fitness_all_runs_per_generation: {standard_deviation_average_fitness_all_runs_per_generation}')
+            print(f'max_fitness_all_runs_per_generation: {max_fitness_all_runs_per_generation}')
+            print(f'standard_deviation_max_fitness_all_runs_per_generation: {standard_deviation_max_fitness_all_runs_per_generation}')
+
+            # Draw Box Plot and save in current folder 
+            draw_box_plot(average_fitness_all_runs_per_generation, max_fitness_all_generations_per_run, standard_deviation_average_fitness_all_runs_per_generation, standard_deviation_max_fitness_all_runs_per_generation)
+
                 # test that individual 5 times and get the mean of those 5 
             five_times_scores_best_individual_array= test_best_individual_five_times(best_individual_value_all_generations, env)
                 # get the mean of the five_times_scores
@@ -460,23 +557,3 @@ if __name__ == '__main__':
         print(f'ten_runs_five_times_individuals_arrays\n{ten_runs_five_times_individuals_arrays}')
         # compute a box plot from the array of 10 runs for the algorithm
         visualize_box_plot(ten_runs_five_times_individuals_arrays, working_directory, experiment_name)
-
-            # # instead of running the algorithm try to visualize it and create charts from the numpy arrays - need to input the name of folder as now it is with time - testing
-            # average_fitness_per_population_array, best_individuals_fitness_per_population_array, best_individual_per_population_array, standard_deviation_per_population_array = load_numpy_files(experiment_name, 'manually_decide', current_run )
-            # visualize_average_fitness_per_population_graph(average_fitness_per_population_array)
-            # visualize_best_individuals_fitness_per_population_array(best_individuals_fitness_per_population_array)
-            # visualize_standard_deviation_per_population_graph(standard_deviation_per_population_array)
-
-
-                    # break
-                    # # if improvement value stays the same, increment the counter as there is no improvement. Ensure that there is improvement with mutation & crossover
-                    # if improvement_value == best_individual[1]:
-                    #     improvement_counter = improvement_counter + 1
-                    #     if improvement_counter == maximum_improvement_counter:
-                    #         break
-                    # else:
-                    #     improvement_value= best_individual[1]
-                    #     improvement_counter = 0
-
-                    # break
-
