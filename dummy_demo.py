@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 # general infromation 
 experiment_type = "test"
 # experiment_type = "test_b"
-experiment_name = "algorithm_a" 
+experiment_name = "algorithm_a_test" 
 experiment_mode = "single"
 working_directory= "not_yet"
 # experiment_mode="multiple"
@@ -303,9 +303,9 @@ def save_array_to_files_with_defined_parameters(experiment_name_folder, folder_n
     print(f'check folder_name: {folder_name}')
     return folder_name
 
-def load_numpy_files(directory):
+def load_numpy_files(first_algorithm_folder, specific_name_of_folder, specific_run):
     print(os.getcwd())
-    os.chdir(os.getcwd() +'/algorithm_a/18_38_33__5_generations_10number_of_individuals')
+    os.chdir(os.getcwd() +'/' +first_algorithm_folder+'/' +specific_name_of_folder+'/'+specific_run')
 
     print(f'new_directory: {os.getcwd()}')
     # os.chdir(path_till_numpy_files)
@@ -461,8 +461,8 @@ if __name__ == '__main__':
         # compute a box plot from the array of 10 runs for the algorithm
         visualize_box_plot(ten_runs_five_times_individuals_arrays, working_directory, experiment_name)
 
-            # # instead of running the algorithm try to visualize it and create charts from the numpy arrays
-            # average_fitness_per_population_array, best_individuals_fitness_per_population_array, best_individual_per_population_array, standard_deviation_per_population_array = load_numpy_files('directory')
+            # # instead of running the algorithm try to visualize it and create charts from the numpy arrays - need to input the name of folder as now it is with time - testing
+            # average_fitness_per_population_array, best_individuals_fitness_per_population_array, best_individual_per_population_array, standard_deviation_per_population_array = load_numpy_files(experiment_name, 'manually_decide', current_run )
             # visualize_average_fitness_per_population_graph(average_fitness_per_population_array)
             # visualize_best_individuals_fitness_per_population_array(best_individuals_fitness_per_population_array)
             # visualize_standard_deviation_per_population_graph(standard_deviation_per_population_array)
