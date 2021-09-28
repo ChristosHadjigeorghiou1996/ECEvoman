@@ -362,7 +362,7 @@ def save_array_to_files_with_defined_parameters(experiment_name_folder, folder_n
     # get time to attach it to the folder 
     from datetime import datetime
     if folder_name == "not_yet":
-        folder_name = (f"{datetime.now().strftime('%H_%M_%S_')}{number_of_runs}number_of_runs_{number_of_generations}_generations_{number_of_individuals}_number_of_individuals")
+        folder_name = (f"{datetime.now().strftime('%d_%m__%Y_%H_%M_%S_')}{number_of_runs}number_of_runs_{number_of_generations}_generations_{number_of_individuals}_number_of_individuals")
         print(f'changing folder name to {folder_name}')
     # # create and navigate to the experiment_name folder 
     if not os.path.exists(experiment_name_folder):
@@ -460,7 +460,7 @@ def visualize_box_plot(array, folder_name, algorithm_name ):
     plt.savefig(f'{algorithm_name}_box_plot.png')
     plt.close()
 
-def draw_box_plot(average_fitness_all_runs_per_generation, max_fitness_all_runs_per_generation, standard_deviation_average_fitness_all_runs_per_generation, standard_deviation_max_fitness_all_runs_per_generation):
+def draw_line_plot(average_fitness_all_runs_per_generation, max_fitness_all_runs_per_generation, standard_deviation_average_fitness_all_runs_per_generation, standard_deviation_max_fitness_all_runs_per_generation):
     number_of_generations_array= list(np.arange(len(average_fitness_all_runs_per_generation)))
     plt.errorbar(number_of_generations_array, max_fitness_all_runs_per_generation, yerr= standard_deviation_max_fitness_all_runs_per_generation,ecolor="black", label="Max Fitness")
     plt.errorbar(number_of_generations_array, average_fitness_all_runs_per_generation, yerr= standard_deviation_average_fitness_all_runs_per_generation ,ecolor="black", label="Average Fitness", )
@@ -539,83 +539,80 @@ if __name__ == '__main__':
             best_individual_value_all_generations= best_individuals_value_populations_array[best_individual_fitness_position_all_generations]
             print(f'\nbest_individual_value_all_generations:\n{best_individual_value_all_generations}')
 
-            # Since we have the big arrays for all runs per generation, consider taking the values from the overall instead of having twice the arrays
-            # try to get fittest individual from all generations of each run 
-            print(f'max_fitness_ten_runs_twenty_generations_array:\n {max_fitness_ten_runs_twenty_generations_array}')
-            
-            # go over each run and find the best individual of all generations and add it to max_fitness
-            max_fitness_all_generations_per_run= np.zeros(shape=total_runs)
-            for run_counter in range(total_runs):
-                # current run of max fitness of all generations
-                current_run_max_array=max_fitness_ten_runs_twenty_generations_array[run_counter]
-                print(f'current_run_array: {current_run_max_array}')
-                current_run_max_value_position= np.argmax(current_run_max_array)
-                max_value_current_run= current_run_max_array[current_run_max_value_position]
-                print(f'max_value_current_run: {max_value_current_run}')
-                max_fitness_all_generations_per_run[run_counter]= max_value_current_run
+        # Since we have the big arrays for all runs per generation, consider taking the values from the overall instead of having twice the arrays
+        # try to get fittest individual from all generations of each run 
+        print(f'max_fitness_ten_runs_twenty_generations_array:\n {max_fitness_ten_runs_twenty_generations_array}')
+        
+        # go over each run and find the best individual of all generations and add it to max_fitness
+        max_fitness_all_generations_per_run= np.zeros(shape=total_runs)
+        for run_counter in range(total_runs):
+            # current run of max fitness of all generations
+            current_run_max_array=max_fitness_ten_runs_twenty_generations_array[run_counter]
+            print(f'current_run_array: {current_run_max_array}')
+            current_run_max_value_position= np.argmax(current_run_max_array)
+            max_value_current_run= current_run_max_array[current_run_max_value_position]
+            print(f'max_value_current_run: {max_value_current_run}')
+            max_fitness_all_generations_per_run[run_counter]= max_value_current_run
 
-                # current run of mean fitness of all generations
-                # current_run_average_fitness_array= mean_fitness_ten_runs_twenty_generations_array[run_counter]
-                # print(f'current_run_average_fitness_array: {current_run_average_fitness_array}')
-                # current_run_average_fitness= np.average(current_run_max_array)
-                # average_fitness_all_generations_per_run[run_counter]= current_run_average_fitness
-            
-            # only the max fitness of all generations per run
-            print(f'max_fitness_all_generations_per_run:\n{max_fitness_all_generations_per_run}')
-            # play 5 times with the max fitness individual - ****need to get the max individual 
+            # current run of mean fitness of all generations
+            # current_run_average_fitness_array= mean_fitness_ten_runs_twenty_generations_array[run_counter]
+            # print(f'current_run_average_fitness_array: {current_run_average_fitness_array}')
+            # current_run_average_fitness= np.average(current_run_max_array)
+            # average_fitness_all_generations_per_run[run_counter]= current_run_average_fitness
+        
+        # only the max fitness of all generations per run
+        print(f'max_fitness_all_generations_per_run:\n{max_fitness_all_generations_per_run}')
+        # play 5 times with the max fitness individual - ****need to get the max individual 
 
-            # mean fitness of all 
-            
-            max_fitness_first_generation_all_runs= max_fitness_ten_runs_twenty_generations_array[:, 0]
-            print(f'max_fitness_first_generation_all_runs: {max_fitness_first_generation_all_runs}')
+        # mean fitness of all 
 
-            print(f'mean_fitness_ten_runs_twenty_generations_array: {mean_fitness_ten_runs_twenty_generations_array}')
+        print(f'mean_fitness_ten_runs_twenty_generations_array: {mean_fitness_ten_runs_twenty_generations_array}')
 
-            #******* Line plot Average and max  # COnsider make box plot with line plot arrays
+        #******* Line plot Average and max  # COnsider make box plot with line plot arrays
 
-            # get average fitness and standarddeviation for all runs per generation 
-            average_fitness_all_runs_per_generation= np.zeros(shape=maximum_generations)
-            standard_deviation_average_fitness_all_runs_per_generation= np.zeros(shape=maximum_generations)
-            
+        # get average fitness and standarddeviation for all runs per generation 
+        average_fitness_all_runs_per_generation= np.zeros(shape=maximum_generations)
+        standard_deviation_average_fitness_all_runs_per_generation= np.zeros(shape=maximum_generations)
+        
 
-            # get max fitness and standard deviation for all runs per generation
-            max_fitness_all_runs_per_generation= np.zeros(shape= maximum_generations)
-            standard_deviation_max_fitness_all_runs_per_generation= np.zeros(shape=maximum_generations)
+        # get max fitness and standard deviation for all runs per generation
+        max_fitness_all_runs_per_generation= np.zeros(shape= maximum_generations)
+        standard_deviation_max_fitness_all_runs_per_generation= np.zeros(shape=maximum_generations)
 
-            for generation_counter in range(maximum_generations):
-                # average fitness 
-                current_generation_average_fitness= mean_fitness_ten_runs_twenty_generations_array[:, generation_counter]
-                # print(f'current_generation_average_fitness: {current_generation_average_fitness}')
-                average_fitness_all_runs_per_generation[generation_counter]= np.mean(current_generation_average_fitness)
-                standard_deviation_average_fitness_all_runs_per_generation[generation_counter]= np.std(current_generation_average_fitness)
+        for generation_counter in range(maximum_generations):
+            # average fitness 
+            current_generation_average_fitness= mean_fitness_ten_runs_twenty_generations_array[:, generation_counter]
+            # print(f'current_generation_average_fitness: {current_generation_average_fitness}')
+            average_fitness_all_runs_per_generation[generation_counter]= np.mean(current_generation_average_fitness)
+            standard_deviation_average_fitness_all_runs_per_generation[generation_counter]= np.std(current_generation_average_fitness)
 
-                # max fitness 
-                current_generation_max_fitness= max_fitness_ten_runs_twenty_generations_array[:, generation_counter]
-                # print(f'current_generation_max_fitness: {current_generation_max_fitness}')
-                max_fitness_all_runs_per_generation[generation_counter]= np.max(current_generation_max_fitness)
-                standard_deviation_max_fitness_all_runs_per_generation[generation_counter]= np.std(current_generation_max_fitness)
+            # max fitness 
+            current_generation_max_fitness= max_fitness_ten_runs_twenty_generations_array[:, generation_counter]
+            # print(f'current_generation_max_fitness: {current_generation_max_fitness}')
+            max_fitness_all_runs_per_generation[generation_counter]= np.max(current_generation_max_fitness)
+            standard_deviation_max_fitness_all_runs_per_generation[generation_counter]= np.std(current_generation_max_fitness)
 
-            print(f'average_fitness_all_runs_per_generation: {average_fitness_all_runs_per_generation}')
-            print(f'standard_deviation_average_fitness_all_runs_per_generation: {standard_deviation_average_fitness_all_runs_per_generation}')
-            print(f'max_fitness_all_runs_per_generation: {max_fitness_all_runs_per_generation}')
-            print(f'standard_deviation_max_fitness_all_runs_per_generation: {standard_deviation_max_fitness_all_runs_per_generation}')
+        print(f'average_fitness_all_runs_per_generation: {average_fitness_all_runs_per_generation}')
+        print(f'standard_deviation_average_fitness_all_runs_per_generation: {standard_deviation_average_fitness_all_runs_per_generation}')
+        print(f'max_fitness_all_runs_per_generation: {max_fitness_all_runs_per_generation}')
+        print(f'standard_deviation_max_fitness_all_runs_per_generation: {standard_deviation_max_fitness_all_runs_per_generation}')
 
-            # Draw Box Plot and save in current folder 
-            draw_box_plot(average_fitness_all_runs_per_generation, max_fitness_all_generations_per_run, standard_deviation_average_fitness_all_runs_per_generation, standard_deviation_max_fitness_all_runs_per_generation)
+        # Draw Box Plot and save in current folder 
+        draw_line_plot(average_fitness_all_runs_per_generation, max_fitness_all_runs_per_generation, standard_deviation_average_fitness_all_runs_per_generation, standard_deviation_max_fitness_all_runs_per_generation)
 
-                # test that individual 5 times and get the mean of those 5 
-            five_times_scores_best_individual_array= test_best_individual_five_times(best_individual_value_all_generations, env)
-                # get the mean of the five_times_scores
-            mean_of_five_times_scores_best_individual = np.mean(five_times_scores_best_individual_array)
-            print(f'mean_of_five_times_scores_best_individual: {mean_of_five_times_scores_best_individual}')
+            # test that individual 5 times and get the mean of those 5 
+        five_times_scores_best_individual_array= test_best_individual_five_times(best_individual_value_all_generations, env)
+            # get the mean of the five_times_scores
+        mean_of_five_times_scores_best_individual = np.mean(five_times_scores_best_individual_array)
+        print(f'mean_of_five_times_scores_best_individual: {mean_of_five_times_scores_best_individual}')
 
-                # add that value in the array for all runs regarding the mean_five_times_score_best_individual
-            ten_runs_five_times_individuals_arrays[current_run] = mean_of_five_times_scores_best_individual
-            #save the arrays 
-            working_directory = save_array_to_files_with_defined_parameters(experiment_name, working_directory, total_runs, current_run, maximum_generations, population_size,  best_individuals_fitness_populations_array, best_individuals_value_populations_array, mean_fitness_populations_array, standard_deviation_populations_array)
+            # add that value in the array for all runs regarding the mean_five_times_score_best_individual
+        ten_runs_five_times_individuals_arrays[current_run] = mean_of_five_times_scores_best_individual
+        #save the arrays 
+        working_directory = save_array_to_files_with_defined_parameters(experiment_name, working_directory, total_runs, current_run, maximum_generations, population_size,  best_individuals_fitness_populations_array, best_individuals_value_populations_array, mean_fitness_populations_array, standard_deviation_populations_array)
 
-            print("*******************************************Creating Graphs**************************************")
-            create_graphs_for_each_run(mean_fitness_populations_array, best_individuals_fitness_populations_array, standard_deviation_populations_array, experiment_name, working_directory, current_run)
+        print("*******************************************Creating Graphs**************************************")
+        create_graphs_for_each_run(mean_fitness_populations_array, best_individuals_fitness_populations_array, standard_deviation_populations_array, experiment_name, working_directory, current_run)
 
         # get the array of 10 means of the 10 runs of the best_individual
         print(f'ten_runs_five_times_individuals_arrays\n{ten_runs_five_times_individuals_arrays}')

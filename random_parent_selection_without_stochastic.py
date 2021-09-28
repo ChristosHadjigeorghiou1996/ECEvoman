@@ -28,6 +28,7 @@ headless = True
 if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
+
 # general infromation 
 experiment_type = "test"
 # experiment_type = "test_b"
@@ -76,7 +77,7 @@ elif experiment_type == "":
 # size of individuals
 individuals_size = (env.get_num_sensors()+1)*hidden_neurons + (hidden_neurons+1)*5
 # population size made of n individuals
-population_size = 20
+population_size = 10
 # max generations to run
 maximum_generations = 5
 # total runs to run
@@ -336,7 +337,6 @@ def non_uniform_mutation_varying_sigma_mutate_individual(individual, probability
 
             # print(f'mutated individual: {mutated_individual}')
     return individual
-        # maybe consider uniform from -1 to 1 instead 
     
 def create_new_population_two_parents_two_offsprings(list_population_values_fitness, old_population, cur_generation, max_generations):
     # cross over alpha parameter varying to create more offsprings. sharing most / a lot of information in each child 
@@ -347,53 +347,54 @@ def create_new_population_two_parents_two_offsprings(list_population_values_fitn
     next_generation_population=np.zeros_like(old_population)
     # print(f'next_generation_population.shape: {next_generation_population.shape} and values: {next_generation_population}')
 
-    # stochastically create the mating population of k individuals by using sigma scaling and normalization
-    mating_population= choose_k_individuals_for_mating_stochastically_sigma_scaling(list_population_values_fitness,4)
-    # offspring array from pairings of mating population
-    offspring_population_array= np.zeros(shape=(len(mating_population), len(mating_population[0][0])))
-    print(f'offspring_population_array.shape: {offspring_population_array.shape}')
-        # go over the list pair_wise and select the parents 
-    for position_counter in range(0, len(mating_population) - 1, 2):
-        # get value of individual parent and disregard fitness
-        parent_one= mating_population[position_counter][0]
-        print(f'parent_one: {parent_one}')
-        parent_two= mating_population[position_counter + 1][0]
-        print(f'parent_two: {parent_two}')
-        offspring_one, offpsring_two= crossover_two_parents_alpha_uniform(parent_one, parent_two)
-        mutated_offspring_one= non_uniform_mutation_varying_sigma_mutate_individual(offspring_one)
-        print(f'mutated_offspring_one: {mutated_offspring_one}')
-        mutated_offspring_two= non_uniform_mutation_varying_sigma_mutate_individual(offpsring_two)
-        print(f'mutated_offspring_two: {mutated_offspring_two}')
-        offspring_population_array[position_counter]= mutated_offspring_one
-        offspring_population_array[position_counter + 1]= mutated_offspring_two
+    # # ************* THIS part is still not finished
+    # # stochastically create the mating population of k individuals by using sigma scaling and normalization
+    # mating_population= choose_k_individuals_for_mating_stochastically_sigma_scaling(list_population_values_fitness,4)
+    # # offspring array from pairings of mating population
+    # offspring_population_array= np.zeros(shape=(len(mating_population), len(mating_population[0][0])))
+    # print(f'offspring_population_array.shape: {offspring_population_array.shape}')
+    #     # go over the list pair_wise and select the parents 
+    # for position_counter in range(0, len(mating_population) - 1, 2):
+    #     # get value of individual parent and disregard fitness
+    #     parent_one= mating_population[position_counter][0]
+    #     print(f'parent_one: {parent_one}')
+    #     parent_two= mating_population[position_counter + 1][0]
+    #     print(f'parent_two: {parent_two}')
+    #     offspring_one, offpsring_two= crossover_two_parents_alpha_uniform(parent_one, parent_two)
+    #     mutated_offspring_one= non_uniform_mutation_varying_sigma_mutate_individual(offspring_one)
+    #     print(f'mutated_offspring_one: {mutated_offspring_one}')
+    #     mutated_offspring_two= non_uniform_mutation_varying_sigma_mutate_individual(offpsring_two)
+    #     print(f'mutated_offspring_two: {mutated_offspring_two}')
+    #     offspring_population_array[position_counter]= mutated_offspring_one
+    #     offspring_population_array[position_counter + 1]= mutated_offspring_two
 
 
-    # given
+    # # given
 
-        ## continue from here survivor with stochastically again 
+    #     ## continue from here survivor with stochastically again 
         
 
     # # Randomly select parents from all population
-    # # go two steps each time removing two parents and creating two offsprings which are added to the new population. Stop until we are done whichi s of same size.
-    # for individual_position in range(0, old_population.shape[0], 2):
-    #     # select two parents from the population ensuring they are not the same and forgetting them from the population which assumes they reproduce once 
-    #     parent_one, parent_two, old_population= randomly_select_two_individuals(old_population)
-    #     # ********** Method 1 - crossover with alpha parameter array to produce 6 children  
-    #     # offspring_array= crossover_two_parents_six_children(parent_one, parent_two, cross_over_alpha_parameter_array)
+    # go two steps each time removing two parents and creating two offsprings which are added to the new population. Stop until we are done whichi s of same size.
+    for individual_position in range(0, old_population.shape[0], 2):
+        # select two parents from the population ensuring they are not the same and forgetting them from the population which assumes they reproduce once 
+        parent_one, parent_two, old_population= randomly_select_two_individuals(old_population)
+        # ********** Method 1 - crossover with alpha parameter array to produce 6 children  
+        # offspring_array= crossover_two_parents_six_children(parent_one, parent_two, cross_over_alpha_parameter_array)
 
-    #     # ********** Method 2 - crossover with alpha parameter uniform - 2 children
-    #     first_child, second_child = crossover_two_parents_alpha_uniform(parent_one, parent_two)
-    #     # mutate every individual
-    #     # mutated_offspring_array= np.zeros(shape=(offspring_array.shape))
-    #     # print(f'mutated_offspring_array.shape:\n{mutated_offspring_array.shape}')
-    #     # for position, offspring in enumerate(offspring_array): 
-    #     #     modified_offspring= non_uniform_mutation_varying_sigma_mutate_individual(offspring, mutation_probability, cur_generation, max_generations)
-    #     #     mutated_offspring_array[position]= modified_offspring
-    #     first_child_mutated= non_uniform_mutation_varying_sigma_mutate_individual(first_child, mutation_probability, cur_generation, max_generations)
-    #     second_child_mutated= non_uniform_mutation_varying_sigma_mutate_individual(second_child, mutation_probability, cur_generation, max_generations)
-    #     # works for two offsprings only 
-    #     next_generation_population[individual_position]= first_child_mutated[0]
-    #     next_generation_population[individual_position + 1]= second_child_mutated[1]
+        # ********** Method 2 - crossover with alpha parameter uniform - 2 children
+        first_child, second_child = crossover_two_parents_alpha_uniform(parent_one, parent_two)
+        # mutate every individual
+        # mutated_offspring_array= np.zeros(shape=(offspring_array.shape))
+        # print(f'mutated_offspring_array.shape:\n{mutated_offspring_array.shape}')
+        # for position, offspring in enumerate(offspring_array): 
+        #     modified_offspring= non_uniform_mutation_varying_sigma_mutate_individual(offspring, mutation_probability, cur_generation, max_generations)
+        #     mutated_offspring_array[position]= modified_offspring
+        first_child_mutated= non_uniform_mutation_varying_sigma_mutate_individual(first_child, mutation_probability, cur_generation, max_generations)
+        second_child_mutated= non_uniform_mutation_varying_sigma_mutate_individual(second_child, mutation_probability, cur_generation, max_generations)
+        # works for two offsprings only 
+        next_generation_population[individual_position]= first_child_mutated[0]
+        next_generation_population[individual_position + 1]= second_child_mutated[1]
     
     # print(f'next_generation_population: {next_generation_population} and shape: {next_generation_population.shape}')
 
@@ -506,7 +507,13 @@ def visualize_box_plot(array, folder_name, algorithm_name ):
     plt.close()
 
 def draw_line_plot(average_fitness_all_runs_per_generation, max_fitness_all_runs_per_generation, standard_deviation_average_fitness_all_runs_per_generation, standard_deviation_max_fitness_all_runs_per_generation):
+    print(f'********************** Line plot **************************')
+    print(f'average_fitness_all_runs_per_generation:\n{average_fitness_all_runs_per_generation}\n and shape: {average_fitness_all_runs_per_generation.shape}')
+    print(f'max_fitness_all_runs_per_generation:\n{max_fitness_all_runs_per_generation}\n and shape: {max_fitness_all_runs_per_generation.shape}')
+    print(f'standard_deviation_average_fitness_all_runs_per_generation:\n{standard_deviation_average_fitness_all_runs_per_generation}\n and shape: {standard_deviation_average_fitness_all_runs_per_generation.shape}')
+    print(f'standard_deviation_max_fitness_all_runs_per_generation:\n{standard_deviation_max_fitness_all_runs_per_generation}\n and shape: {standard_deviation_max_fitness_all_runs_per_generation.shape}')
     number_of_generations_array= list(np.arange(len(average_fitness_all_runs_per_generation)))
+    print(f'number_of_generations_array: {number_of_generations_array}')
     plt.errorbar(number_of_generations_array, max_fitness_all_runs_per_generation, yerr= standard_deviation_max_fitness_all_runs_per_generation,ecolor="black", label="Max Fitness")
     plt.errorbar(number_of_generations_array, average_fitness_all_runs_per_generation, yerr= standard_deviation_average_fitness_all_runs_per_generation ,ecolor="black", label="Average Fitness", )
     plt.legend(loc="center")
@@ -581,13 +588,14 @@ if __name__ == '__main__':
             best_individual_value_all_generations= best_individuals_value_populations_array[best_individual_fitness_position_all_generations]
             # print(f'\nbest_individual_value_all_generations:\n{best_individual_value_all_generations}')
 
-            # Since we have the big arrays for all runs per generation, consider taking the values from the overall instead of having twice the arrays
-            # try to get fittest individual from all generations of each run 
-            print(f'max_fitness_ten_runs_twenty_generations_array:\n {max_fitness_ten_runs_twenty_generations_array}')
+        # Since we have the big arrays for all runs per generation, consider taking the values from the overall instead of having twice the arrays
+        # try to get fittest individual from all generations of each run 
+        print(f'max_fitness_ten_runs_twenty_generations_array:\n {max_fitness_ten_runs_twenty_generations_array}')
             
-        # Once all runs have finished get the information 
+        # Bring everything from this line until 658
         # go over each run and find the best individual of all generations and add it to max_fitness
         max_fitness_all_generations_per_run= np.zeros(shape=total_runs)
+
 
         for run_counter in range(total_runs):
             # current run of max fitness of all generations
@@ -609,6 +617,10 @@ if __name__ == '__main__':
         # play 5 times with the max fitness individual - ****need to get the max individual 
 
         # mean fitness of all 
+        
+        max_fitness_first_generation_all_runs= max_fitness_ten_runs_twenty_generations_array[:, 0]
+        print(f'max_fitness_first_generation_all_runs: {max_fitness_first_generation_all_runs}')
+
         print(f'mean_fitness_ten_runs_twenty_generations_array: {mean_fitness_ten_runs_twenty_generations_array}')
 
         #******* Line plot Average and max  # COnsider make box plot with line plot arrays
