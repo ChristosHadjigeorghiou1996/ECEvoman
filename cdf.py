@@ -1,6 +1,7 @@
 import random
 import numpy as np
 from numpy import array
+from numpy.core.fromnumeric import shape
 from numpy.random.mtrand import uniform
 from sklearn.preprocessing import MinMaxScaler
 
@@ -1104,13 +1105,89 @@ sorted_list = [[array([ 0.98787748, -0.28765725,  0.47133756,  0.60957083, -0.33
        -0.53332868,  0.2582836 , -0.58664741, -0.44557828, -0.65311934,
         0.19892834,  0.93290434,  0.70803769, -0.55202962, -0.48813963]), 57.19486503108351]]
 
+# cumulative distribution function based on the fitness of each individual of array but prioritize on worse
+# Fitness Proportionate Selection and Sigma scaling
+def cumulative_distribution_function_prioritizing_worst(received_list, number_of_individuals_to_select ):
+    fitness_values_list = [row[1] for row in received_list]
+    print(f'fitness_values_list for worst: {fitness_values_list}')
+    range_value_list= max(fitness_values_list) - min(fitness_values_list)
+    print(f'range_value_list: {range_value_list}')
+    abs_fitness_values_list_minus_range= [(abs(element - range_value_list)) for element in fitness_values_list]
+    print(f'abs_fitness_values_list_minus_range: {abs_fitness_values_list_minus_range}')
 
+    for position, value in enumerate(abs_fitness_values_list_minus_range):
+        if value <= 0: 
+            abs_fitness_values_list_minus_range[position]= min_value
+
+    # print(f'updated fitness_values_list: {fitness_values_list}')
+    x_min= min(abs_fitness_values_list_minus_range)
+    # print(f'x_min: {x_min}')
+    x_max = max(abs_fitness_values_list_minus_range)
+    # print(f'x_max: {x_max}')
+    
+    # sigma scaling --> f'(x) = max( f(x) - (average_f - c * std_f), 0)
+    fitness_array= np.asarray(abs_fitness_values_list_minus_range)
+    print(f'fitness_array: {fitness_array}')
+    mean_of_fitness_array= np.mean(abs_fitness_values_list_minus_range)
+    print(f'mean_of_fitness_array: {mean_of_fitness_array}')
+    standard_deviation_of_fitness_array= np.std(abs_fitness_values_list_minus_range)
+    print(f'standard_deviation_of_fitness_array: {standard_deviation_of_fitness_array}')
+    # c = 2
+    sigma_scaling_array= np.zeros(shape=fitness_array.shape[0])
+    for element_position, element_value in enumerate(fitness_array):
+        new_value= max(element_value - ( mean_of_fitness_array - 2 * standard_deviation_of_fitness_array), 0)
+        sigma_scaling_array[element_position] = new_value
+    print(f'sigma_scaling_array:\n {sigma_scaling_array}')
+
+    # Min Max Normalization from scikit 
+    # https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MinMaxScaler.html#sklearn.preprocessing.MinMaxScaler
+    min_max_scaler= MinMaxScaler()
+    # reshaped array row-wise to feed to min_max_scalar
+    # normalized values
+    # print(f'sigma_scaling_array.reshape(-1, 1):\n {sigma_scaling_array.reshape(-1, 1)}')
+    normalized_array= min_max_scaler.fit_transform(sigma_scaling_array.reshape(-1, 1))
+    print(f'normalized_array:\n {normalized_array}')
+
+    normalized_array= np.where(normalized_array==0, min_value,normalized_array)
+    print(f'after replacement normalized_array: {normalized_array}')
+    # sum of array for denominator
+    sum_normalized= np.sum(normalized_array)
+    # print(f'sum_normalized: {sum_normalized}')
+    # divide each probability by the total to get cdf 
+    normalized_array_divided_by_sum= normalized_array / sum_normalized
+    # print(f'normalized_array_divided_by_sum:\n{normalized_array_divided_by_sum}')   
+    # print(f'shape: {normalized_array_divided_by_sum.shape}')
+
+    # randomly choose mating pool of parents given the array of parents, the weights and selecting k number with 
+    index_to_select= random.choices(range(len(received_list)), weights=normalized_array_divided_by_sum, k=number_of_individuals_to_select )
+    print(f'index_to_select: {index_to_select}')
+    print(f'length: {len(index_to_select)}')
+
+    for position in range(len(index_to_select)):
+        print(f'index_to_select[position]: {index_to_select[position]}')
+        element_to_remove= received_list[index_to_select[position]]
+        print(f'element_to_remove: {element_to_remove}')
+        received_list[index_to_select[position]] = 0 
+        print(f'received_list[index_to_select[position]]: {received_list[index_to_select[position]]}')
+
+
+    stochastic_choice_of_parents= random.choices(received_list, weights=normalized_array_divided_by_sum, k=number_of_individuals_to_select)
+
+    print(f'stochastic_choice_of_parents: {stochastic_choice_of_parents} and length: {len(stochastic_choice_of_parents)}')
+
+    print(f'individual_to_find: {stochastic_choice_of_parents[0]}')
+    # find the position of the individual
+    index_of_individual = received_list.index(stochastic_choice_of_parents[0])
+    print(f'index_of_individual: {index_of_individual}')
+    print(f'received_list[0]: {received_list[0]}')
+
+    return stochastic_choice_of_parents
+    
 # cumulative distribution function based on the fitness of each individual of array provided
 # Fitness Proportionate Selection and Sigma scaling
 def cumulative_distribution_function(received_list, number_of_individuals_to_select ):
     fitness_values_list = [row[1] for row in received_list]
     print(f'fitness_values_list: {fitness_values_list}')
-    prob_list= list(np.arange(len(fitness_values_list)))
 
     for position, value in enumerate(fitness_values_list):
         if value <= 0: 
@@ -1157,6 +1234,8 @@ def cumulative_distribution_function(received_list, number_of_individuals_to_sel
     stochastic_choice_of_parents= random.choices(received_list, weights=normalized_array_divided_by_sum, k=number_of_individuals_to_select)
     print(f'stochastic_choice_of_parents: {stochastic_choice_of_parents} and length: {len(stochastic_choice_of_parents)}')
 
+
+
     return stochastic_choice_of_parents
     
 
@@ -1164,6 +1243,7 @@ def cumulative_distribution_function(received_list, number_of_individuals_to_sel
       
 
     # manual normalization and fps
+    # prob_list= list(np.arange(len(fitness_values_list)))
     # for position, value in enumerate(fitness_values_list):
     #     # normalziation 
     #     new_value= (value - x_min) / (x_max - x_min)
@@ -1197,4 +1277,5 @@ def cumulative_distribution_function(received_list, number_of_individuals_to_sel
     #             break
     # print(f'parents_chosen_list: {parents_chosen_list} and len: {len(parents_chosen_list)}')
 if __name__ == '__main__':
-    mating_population= cumulative_distribution_function(sorted_list, 6 )
+    # mating_population= cumulative_distribution_function(sorted_list, 6 )
+    worst_individuals= cumulative_distribution_function_prioritizing_worst(sorted_list, 1)

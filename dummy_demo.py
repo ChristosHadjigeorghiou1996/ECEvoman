@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 # min max scalar for normalization instead of manual method
 from sklearn.preprocessing import MinMaxScaler
 # random.choices allows stochastic mating population for choose_k_individuals_for_mating_stochastically_sigma_scaling function 
-from random import choices
+from random import choices, sample
 
 # REMEMBER TO REMOVE
 # choose this for not using visuals and thus making experiments faster
@@ -305,6 +305,70 @@ def choose_k_individuals_for_mating_stochastically_sigma_scaling(received_list, 
     #             break
     # print(f'parents_chosen_list: {parents_chosen_list} and len: {len(parents_chosen_list)}')
     return stochastic_choice_of_parents
+
+# cumulative distribution function based on the fitness of each individual of array but prioritize on worse
+# Fitness Proportionate Selection and Sigma scaling
+def cumulative_distribution_function_prioritizing_worst(received_list, number_of_individuals_to_select ):
+    min_value= 0.0001
+    fitness_values_list = [row[1] for row in received_list]
+    # compute the range of elements in list 
+    range_value_list= max(fitness_values_list) - min(fitness_values_list)
+    # print(f'range_value_list: {range_value_list}')
+    # compute the absolute difference of the value minus the range. This way small fitness values become large and large values small so that you can normalize
+    abs_fitness_values_list_minus_range= [(abs(element - range_value_list)) for element in fitness_values_list]
+    # print(f'abs_fitness_values_list_minus_range: {abs_fitness_values_list_minus_range}')
+
+    for position, value in enumerate(abs_fitness_values_list_minus_range):
+        if value <= 0: 
+            abs_fitness_values_list_minus_range[position]= min_value
+
+    # print(f'updated fitness_values_list: {fitness_values_list}')
+    x_min= min(abs_fitness_values_list_minus_range)
+    # print(f'x_min: {x_min}')
+    x_max = max(abs_fitness_values_list_minus_range)
+    # print(f'x_max: {x_max}')
+    
+    # sigma scaling --> f'(x) = max( f(x) - (average_f - c * std_f), 0)
+    fitness_array= np.asarray(abs_fitness_values_list_minus_range)
+    # print(f'fitness_array: {fitness_array}')
+    mean_of_fitness_array= np.mean(abs_fitness_values_list_minus_range)
+    # print(f'mean_of_fitness_array: {mean_of_fitness_array}')
+    standard_deviation_of_fitness_array= np.std(abs_fitness_values_list_minus_range)
+    # print(f'standard_deviation_of_fitness_array: {standard_deviation_of_fitness_array}')
+    # c = 2
+    sigma_scaling_array= np.zeros(shape=fitness_array.shape[0])
+    for element_position, element_value in enumerate(fitness_array):
+        new_value= max(element_value - ( mean_of_fitness_array - 2 * standard_deviation_of_fitness_array), 0)
+        sigma_scaling_array[element_position] = new_value
+    print(f'sigma_scaling_array:\n {sigma_scaling_array}')
+
+    # Min Max Normalization from scikit 
+    # https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MinMaxScaler.html#sklearn.preprocessing.MinMaxScaler
+    min_max_scaler= MinMaxScaler()
+    # reshaped array row-wise to feed to min_max_scalar
+    # normalized values
+    # print(f'sigma_scaling_array.reshape(-1, 1):\n {sigma_scaling_array.reshape(-1, 1)}')
+    normalized_array= min_max_scaler.fit_transform(sigma_scaling_array.reshape(-1, 1))
+    print(f'normalized_array:\n {normalized_array}')
+
+    normalized_array= np.where(normalized_array==0, min_value,normalized_array)
+    print(f'after replacement normalized_array: {normalized_array}')
+    # sum of array for denominator
+    sum_normalized= np.sum(normalized_array)
+    # print(f'sum_normalized: {sum_normalized}')
+    # divide each probability by the total to get cdf 
+    normalized_array_divided_by_sum= normalized_array / sum_normalized
+    # print(f'normalized_array_divided_by_sum:\n{normalized_array_divided_by_sum}')   
+    # print(f'shape: {normalized_array_divided_by_sum.shape}')
+
+    # randomly choose mating pool of parents given the array of parents, the weights and selecting k number with 
+    index_to_select_list= random.choices(range(len(received_list)), weights=normalized_array_divided_by_sum, k=number_of_individuals_to_select )
+    print(f'index_to_select_list: {index_to_select_list}')
+
+    return index_to_select_list
+
+
+
     
 
 
@@ -349,6 +413,7 @@ def create_new_population_two_parents_two_offsprings(list_population_values_fitn
 
     # stochastically create the mating population of k individuals by using sigma scaling and normalization
     mating_population= choose_k_individuals_for_mating_stochastically_sigma_scaling(list_population_values_fitness,4)
+    print(f'mating_population: {mating_population}')
     # offspring array from pairings of mating population
     offspring_population_array= np.zeros(shape=(len(mating_population), len(mating_population[0][0])))
     print(f'offspring_population_array.shape: {offspring_population_array.shape}')
@@ -360,12 +425,50 @@ def create_new_population_two_parents_two_offsprings(list_population_values_fitn
         parent_two= mating_population[position_counter + 1][0]
         print(f'parent_two: {parent_two}')
         offspring_one, offpsring_two= crossover_two_parents_alpha_uniform(parent_one, parent_two)
-        mutated_offspring_one= non_uniform_mutation_varying_sigma_mutate_individual(offspring_one)
-        print(f'mutated_offspring_one: {mutated_offspring_one}')
-        mutated_offspring_two= non_uniform_mutation_varying_sigma_mutate_individual(offpsring_two)
-        print(f'mutated_offspring_two: {mutated_offspring_two}')
+        mutated_offspring_one= non_uniform_mutation_varying_sigma_mutate_individual(offspring_one, mutation_probability, cur_generation, max_generations)
+        print(f'mutated_offspring_one:\n{mutated_offspring_one}\nand shape: {mutated_offspring_one.shape}')
+        mutated_offspring_two= non_uniform_mutation_varying_sigma_mutate_individual(offpsring_two, mutation_probability, cur_generation, max_generations)
+        print(f'mutated_offspring_one:\n{mutated_offspring_two}\nand shape: {mutated_offspring_two.shape}')
         offspring_population_array[position_counter]= mutated_offspring_one
         offspring_population_array[position_counter + 1]= mutated_offspring_two
+
+    print(f'offspring_population_array:\n {offspring_population_array}')
+    # Assumption that the children will be fitter than the worst individual
+    # depending on the generations you want to provide more selection pressure - initially just replace the worst only by one of the offsprings and then replace 
+    # all the worst ones. Half way through start replacing more than the worst
+    # find worst individual 
+    
+
+    if cur_generation < max_generations/2 :
+        # number of individuals to replace
+        number_of_individuals_to_replace= 1
+    else:
+        number_of_individuals_to_replace= len(offspring_population_array)
+    positions_of_individual_to_replace= cumulative_distribution_function_prioritizing_worst(list_population_values_fitness, number_of_individuals_to_replace)
+    for position in range(len(positions_of_individual_to_replace)):
+        print(f'positions_of_individual_to_replace[position]: {positions_of_individual_to_replace[position]}')
+        element_to_remove= list_population_values_fitness[positions_of_individual_to_replace[position]]
+        print(f'element_to_remove: {element_to_remove}')
+        # replace the individuals with sampling from the offsprings
+        # anti lista me array. *************************************
+        list_population_values_fitness[positions_of_individual_to_replace[position]] = sample(offspring_population_array) 
+
+        print(f'received_list[index_to_select[position]]: {received_list[index_to_select[position]]}')
+        print('replace only the worst')
+
+        index_of_individual = list_population_values_fitness.index(individual_to_replace)
+        print(f'index_of_individual: {index_of_individual}')
+        print(f'list_population_values_fitness[0]: {list_population_values_fitness[0]}')
+        get_only_individuals= list_population_values_fitness[0]
+        print(f'get_only_individuals:\n{get_only_individuals}')
+
+        # randomly one of the offsprings to replace the worst 
+        random_choice_of_offspring= sample(offspring_population_array) 
+        print(f'random_choice_of_offspring: {random_choice_of_offspring}')
+        print(f'old_population:\n{old_population}')
+        
+
+      
 
 
     # given
