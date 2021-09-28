@@ -588,6 +588,14 @@ if __name__ == '__main__':
             best_individual_value_all_generations= best_individuals_value_populations_array[best_individual_fitness_position_all_generations]
             # print(f'\nbest_individual_value_all_generations:\n{best_individual_value_all_generations}')
 
+            #save the arrays 
+            working_directory = save_array_to_files_with_defined_parameters(experiment_name, working_directory, total_runs, current_run, maximum_generations, population_size,  best_individuals_fitness_populations_array, best_individuals_value_populations_array, mean_fitness_populations_array, standard_deviation_populations_array)
+
+            print("*******************************************Creating Graphs**************************************")
+            create_graphs_for_each_run(mean_fitness_populations_array, best_individuals_fitness_populations_array, standard_deviation_populations_array, experiment_name, working_directory, current_run)
+
+
+
         # Since we have the big arrays for all runs per generation, consider taking the values from the overall instead of having twice the arrays
         # try to get fittest individual from all generations of each run 
         print(f'max_fitness_ten_runs_twenty_generations_array:\n {max_fitness_ten_runs_twenty_generations_array}')
@@ -663,11 +671,6 @@ if __name__ == '__main__':
 
             # add that value in the array for all runs regarding the mean_five_times_score_best_individual
         ten_runs_five_times_individuals_arrays[current_run] = mean_of_five_times_scores_best_individual
-        #save the arrays 
-        working_directory = save_array_to_files_with_defined_parameters(experiment_name, working_directory, total_runs, current_run, maximum_generations, population_size,  best_individuals_fitness_populations_array, best_individuals_value_populations_array, mean_fitness_populations_array, standard_deviation_populations_array)
-
-        print("*******************************************Creating Graphs**************************************")
-        create_graphs_for_each_run(mean_fitness_populations_array, best_individuals_fitness_populations_array, standard_deviation_populations_array, experiment_name, working_directory, current_run)
 
         # get the array of 10 means of the 10 runs of the best_individual
         print(f'ten_runs_five_times_individuals_arrays\n{ten_runs_five_times_individuals_arrays}')
