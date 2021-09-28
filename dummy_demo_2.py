@@ -17,7 +17,8 @@ from environment import Environment
 import numpy as np 
 # import matplot to visualize arrays and draw graphs
 import matplotlib.pyplot as plt
-
+# import math for floor and sqrt of learning rate t
+from math import sqrt, exp
 
 # general infromation 
 experiment_type = "test"
@@ -64,10 +65,13 @@ if experiment_type == "test":
 elif experiment_type == "":
     print('eleos')
 
-# size of individuals
-individuals_size = (env.get_num_sensors()+1)*hidden_neurons + (hidden_neurons+1)*5
+# size of individuals # 265 
+# individuals_size = (env.get_num_sensors()+1)*hidden_neurons + (hidden_neurons+1)*5
+# if we are using uncorrelated mutation with one sigma -> 266 
+individuals_size_with_sigma = (env.get_num_sensors()+1)*hidden_neurons + (hidden_neurons+1)*5 + 1 
+
 # population size made of n individuals
-population_size = 20
+population_size = 10
 # max generations to run
 maximum_generations = 5
 # total runs to run
@@ -78,11 +82,11 @@ improvement_value = 0
 improvement_counter = 0 # cap it to 15
 maximum_improvement_counter = 15; # if counter reach break due to stagnation
 # parameters for random initialization being between -1 and 1 to be able to change direction
-lower_limit_uniform_population = -1
-upper_limit_uniform_population = 1
+lower_limit_individual_value = -1
+upper_limit_individual_value = 1
 # trim lower bound to 0 and upper bound to 1 for mutation
-lower_bound = 0
-upper_bound = 1
+probability_lower_bound = 0
+probability_upper_bound = 1
 # simple straightforward mutation 
 mutation_probability=0.25 # random number check literature
 # consider self-adaptin mutation 
@@ -102,7 +106,10 @@ crossover_alpha_parameter= 0.4
 
 ## simple genetics
 def create_random_uniform_population(size_of_populations, size_of_individuals):
-    new_population = np.random.uniform(lower_limit_uniform_population, upper_limit_uniform_population, (size_of_populations, size_of_individuals))
+    new_population = np.random.uniform(lower_limit_individual_value, upper_limit_individual_value, (size_of_populations, size_of_individuals))
+    # print(f'new_population: {new_population} and new population.shape: {new_population.shape}')
+    # assign the initial sigma as 1 which is the value in the last column of every individual
+    new_population[:, -1]= 1
     # print(f'new_population: {new_population} and new population.shape: {new_population.shape}')
 
     return new_population
@@ -118,14 +125,16 @@ def test_individual(individual, env):
 # iterate over the population and estimate the fitness to get the mean
 def get_population_information(population, env):
     # list with population_fitness and population individuals 
-    combined_list_population_individual_fitness= []
+    combined_list_population_individuals_and_fitness= []
     population_fitness_array = np.zeros(shape=population.shape[0])
     for individual_position in range(population.shape[0]):
         # check if i ever need individual 
-        current_individual, individual_information= test_individual(population[individual_position], env)
+        # don't get consider last value for individual playing the game 
+        _, individual_information= test_individual(population[individual_position][:-1], env)
         # print(f'individual_information: {individual_information} [0]: {individual_information[0]}')
+        # disregard the return individual as the full array with sigma is used afterwards
         population_fitness_array[individual_position] = individual_information[0]
-        combined_list_population_individual_fitness.append([current_individual, individual_information[0]]) 
+        combined_list_population_individuals_and_fitness.append([population[individual_position], individual_information[0]]) 
         # print(f'population_fitness_array:{population_fitness_array}')
 
     # find the most fit value 
@@ -139,9 +148,9 @@ def get_population_information(population, env):
     # find standard deviation of population
     standard_deviation_population = np.std(population_fitness_array)
     print(f'standard_deviation_population: {standard_deviation_population}')
-    print(f'combined_list_population_individual_fitness: {combined_list_population_individual_fitness}')
+    # print(f'combined_list_population_individuals_and_fitness: {combined_list_population_individuals_and_fitness}')
     
-    return combined_list_population_individual_fitness, population_fitness_array, most_fit_value, most_fit_individual, mean_fitness_population, standard_deviation_population
+    return combined_list_population_individuals_and_fitness, population_fitness_array, most_fit_value, most_fit_individual, mean_fitness_population, standard_deviation_population
 
 # randomly select two parents in the population and combine to produce two children per alpha parameter --> 6  
 # instead of producing two children, produce more lets say 4-6 children and then populate to decide on the fitter version 
@@ -177,12 +186,14 @@ def crossover_two_parents_alpha_uniform(first_parent, second_parent):
     number_of_offsprings_array = np.zeros(shape=(number_of_offspring_pairs * 2, first_parent.shape[0]))
     # print(f'number_of_offsprings_array\n{number_of_offsprings_array}\nand shape: {number_of_offsprings_array.shape}')
     for pair_position in range (number_of_offspring_pairs):
-        alpha_parameter= np.random.uniform(lower_bound, upper_bound)        
+        alpha_parameter= np.random.uniform(probability_lower_bound, probability_upper_bound)        
         # print(f'alpha_parameter: {alpha_parameter}')
         first_offspring= first_parent * alpha_parameter + second_parent * (1-alpha_parameter)
         number_of_offsprings_array[pair_position]=first_offspring
         second_offspring= second_parent * alpha_parameter + first_parent * (1-alpha_parameter)
         number_of_offsprings_array[pair_position+1]= second_offspring
+    # they start with sigma parameter 1 
+    number_of_offsprings_array[:, -1] = 1
     # print(f'number_of_offsprings_array: {number_of_offsprings_array}')
     return number_of_offsprings_array
 
@@ -217,16 +228,65 @@ def rank_based_selection(lista_population_value_and_fitness):
     sorted_list = sorted(lista_population_value_and_fitness, key=lambda fitness: fitness[1], reverse=True)
     # print(f'sorted_list: {sorted_list[:3]}')
     # x_new = (x_i - x_min) / x_max - x_min 
-    get_max= sorted
-    mask = [ (element <= 0) for element in sorted_list]
     check_less_zero= [(x <= 0) for x in sorted_list[1]]
     return sorted_list
     
-     
+# log normal mutation operator - logarithm for changing sigma which has normal distribution
+def uncorrelated_mutation_with_one_sigma(individual, probability_of_mutation):
+    # individual is 265 + 1 
+    # each individual coordinate is mutated with a different noise as you draw a new value 
+    # value of t is recommended from the literature **cite
+    # boundary threshold of too close to 0 then push it to the boundary **cite
+    # initial sigma chosen to be 1 
+    boundary_threshold = 0.001
+    
+    learning_rate_t = 1 / (sqrt(individual.shape[0] - 1))
+    # get the sigma of the individual which is the last value 
+    sigma= individual[individual.shape[0] - 1]
+    # compute the new sigma for the individual 
+    new_sigma_for_individual = sigma *exp(learning_rate_t * np.random.normal(0, 1))
+    # print(f'new_sigma_for_individual  {new_sigma_for_individual} and boundary_threshold {boundary_threshold}')
+    if new_sigma_for_individual < boundary_threshold:
+        # print(f'new_sigma_for_individual  {new_sigma_for_individual} is less than {boundary_threshold}')
+        new_sigma_for_individual = boundary_threshold
+        # print(f'new_sigma after boundary threshold {new_sigma_for_individual}')
+    # create an np array to pre-compute the probabilities regarding mutation probability per coordinate of individual
+    random_uniform_mutation_probability_array= np.random.uniform(probability_lower_bound, probability_upper_bound, individual.shape[0] - 1)
+    # create an np array to pre-compute the noise drawn from normal distribution per coordinate
+    random_normal_noise_per_coordinate_array= np.random.normal(0, 1, individual.shape[0] - 1)
+    
+    # last value is sigma 
+    for individual_coordinate_position in range(individual.shape[0] - 1):
+        # print(f'individual.shape[0] - 1): {individual.shape[0] - 1}')
+        # print(f'random_uniform_mutation_probability_array[individual_coordinate_position]: {random_uniform_mutation_probability_array[individual_coordinate_position]} and probability_of_mutation: {probability_of_mutation}')
+        if random_uniform_mutation_probability_array[individual_coordinate_position] < probability_of_mutation:
+            # print(f'before individual[individual_coordinate_position]: {individual[individual_coordinate_position]}')
+            # print(f'random_normal_noise_per_coordinate_array[individual_coordinate_position] : {random_normal_noise_per_coordinate_array[individual_coordinate_position] }')
+            new_coordinate_value= individual[individual_coordinate_position] + new_sigma_for_individual *  random_normal_noise_per_coordinate_array[individual_coordinate_position]
+            # print(f'individual[individual_coordinate_position]: {individual[individual_coordinate_position]}')
+            # print(f'new_coordinate_value: {new_coordinate_value}')
+            # ensure is between lower bound and upper bound
+            if new_coordinate_value > upper_limit_individual_value:
+                new_coordinate_value= upper_limit_individual_value
+            elif new_coordinate_value < lower_limit_individual_value:
+                new_coordinate_value = lower_limit_individual_value
+            individual[individual_coordinate_position] = new_coordinate_value
+            # print(f'after individual[individual_coordinate_position]: {individual[individual_coordinate_position]}')
+
+    individual[individual.shape[0] - 1] = new_sigma_for_individual 
+    # print(f'individual with new sigma: {individual}')
+    return individual
     
 
 
-def mutate_individual(individual, current_generation, total_number_of_generations):
+    
+
+
+    
+    previous_sigma= individual[len(individual.shape[0])]
+
+def non_uniform_mutation_varying_sigma_mutate_individual(individual, current_generation, total_number_of_generations):
+    # non-uniform mutation 
     # the idea is to start with a high sigma value and as generations proceed to reduce the step --> sigma = 1 - (current/ max)
     # current generations will be 1 instead of 0 as 0 is creation of uniform population thus -1 for the sake of starting with 1 as sigma
     varying_sigma_value = 1 - ((current_generation - 1) / total_number_of_generations)
@@ -243,10 +303,10 @@ def mutate_individual(individual, current_generation, total_number_of_generation
             # mutate by considering some noise drawn from Gaussian distribution and then check if the random probability is > 0.5 in which case add otherwise subtract 
             mutated_value = individual_value + np.random.normal(0, varying_sigma_value)
             # print(f'mutated_value before: {mutated_value}')
-            if mutated_value < lower_limit_uniform_population:
-                mutated_value = lower_limit_uniform_population
-            elif mutated_value > upper_limit_uniform_population:
-                mutated_value = upper_limit_uniform_population
+            if mutated_value < lower_limit_individual_value:
+                mutated_value = lower_limit_individual_value
+            elif mutated_value > upper_limit_individual_value:
+                mutated_value = upper_limit_individual_value
             # print(f'mutated_value after: {mutated_value}')
             individual[individual_position] = mutated_value
 
@@ -264,8 +324,9 @@ def create_new_population_two_parents_two_offsprings(list_population_values_fitn
     # print(f'next_generation_population.shape: {next_generation_population.shape} and values: {next_generation_population}')
     
 
-    rank_based_population = rank_based_selection(list_population_values_fitness )
-    print('de panw')
+    # rank_based_population = rank_based_selection(list_population_values_fitness )
+    # print('de panw')
+
 
     # Randomly select parents 
     # go two steps each time removing two parents and creating two offsprings which are added to the new population. Stop until we are done whichi s of same size.
@@ -281,7 +342,9 @@ def create_new_population_two_parents_two_offsprings(list_population_values_fitn
         mutated_offspring_array= np.zeros(shape=(offspring_array.shape))
         # print(f'mutated_offspring_array.shape:\n{mutated_offspring_array.shape}')
         for position, offspring in enumerate(offspring_array): 
-            modified_offspring= mutate_individual(offspring, cur_generation, max_generations)
+            # modified_offspring= non_uniform_mutation_varying_sigma_mutate_individual(offspring, cur_generation, max_generations)
+            # check uncorrelated_mutation_with_one_sigma
+            modified_offspring= uncorrelated_mutation_with_one_sigma(offspring, mutation_probability)
             mutated_offspring_array[position]= modified_offspring
         # works for two offsprings only 
         next_generation_population[individual_position]= mutated_offspring_array[0]
@@ -415,7 +478,7 @@ if __name__ == '__main__':
         
         # Line plot array for each generation per run - have run in rows and generations in columns and then pick up columnwise via [:, generation_number]
         max_fitness_ten_runs_twenty_generations_array= np.zeros(shape=(total_runs, maximum_generations)) 
-        max_individual_value_ten_runs_twenty_generations_array= np.zeros(shape=(total_runs, individuals_size))
+        max_individual_value_ten_runs_twenty_generations_array= np.zeros(shape=(total_runs, individuals_size_with_sigma))
         mean_fitness_ten_runs_twenty_generations_array= np.zeros(shape=(total_runs, maximum_generations))
         standard_deviation_ten_runs_twenty_generations_array= np.zeros(shape=(total_runs, maximum_generations))
  
@@ -429,7 +492,7 @@ if __name__ == '__main__':
             print(f'******************************Starting run {current_run} / {total_runs - 1}')
             # keep records of the best individual fitness, best individual, mean and sd of each population
             best_individuals_fitness_populations_array = np.zeros(shape=(maximum_generations))
-            best_individuals_value_populations_array = np.zeros(shape=(maximum_generations, individuals_size))
+            best_individuals_value_populations_array = np.zeros(shape=(maximum_generations, individuals_size_with_sigma))
             mean_fitness_populations_array = np.zeros(shape=(maximum_generations))
             standard_deviation_populations_array = np.zeros(shape=(maximum_generations))
             for new_generation in range(maximum_generations):
@@ -437,10 +500,13 @@ if __name__ == '__main__':
                 # add stagnation 
                 # if maximum_improvement_counter != improvement_counter:
                 if new_generation == 0:
-                    generation_population = create_random_uniform_population(population_size, individuals_size)
+                    # one more value for sigma
+                    # generation_population = create_random_uniform_population(population_size, individuals_size)
+                    generation_population = create_random_uniform_population(population_size, individuals_size_with_sigma)
                 else: 
                     generation_population = create_new_population_two_parents_two_offsprings(combined_list_population_values_and_fitness, generation_population, population_fitness_array, new_generation, maximum_generations)
                 # get population information
+                
                 combined_list_population_values_and_fitness ,population_fitness_array, best_individual_fitness, best_individual_value, average_fitness_population, standard_deviation_population = get_population_information(generation_population, env) 
                 
                 # box plots 
@@ -479,8 +545,6 @@ if __name__ == '__main__':
             
             # go over each run and find the best individual of all generations and add it to max_fitness
             max_fitness_all_generations_per_run= np.zeros(shape=total_runs)
-
-
             for run_counter in range(total_runs):
                 # current run of max fitness of all generations
                 current_run_max_array=max_fitness_ten_runs_twenty_generations_array[run_counter]
