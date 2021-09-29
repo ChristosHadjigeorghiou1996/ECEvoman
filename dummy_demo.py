@@ -82,7 +82,7 @@ population_size = 100
 # max generations to run
 maximum_generations = 30
 # total runs to run
-total_runs = 10
+total_runs = 3
 
 # max iterations to run without improvement to indicate stagnation
 improvement_value = 0

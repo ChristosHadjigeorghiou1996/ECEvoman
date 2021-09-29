@@ -24,7 +24,7 @@ from random import choices, sample
 # time will enable timing of the algorithm
 import time
 # sqrt and exp for the uncorrelated mutation with one sigma
-from math import sqrt, exp
+from math import ceil, sqrt, exp
 
 # REMEMBER TO REMOVE
 # choose this for not using visuals and thus making experiments faster
@@ -37,7 +37,7 @@ experiment_type = "test"
 # experiment_type = "test_b"
 experiment_name = "algorithm_b_test" 
 experiment_mode = "single"
-working_directory= "not_yet"
+
 # experiment_mode="multiple"
 # experiment_name = "algorithm_b"
 if not os.path.exists(experiment_name):
@@ -48,9 +48,8 @@ hidden_neurons = 10
 
 # 
 if experiment_mode == "single":
-    list_of_enemies = [2] # 5 to show
+    list_of_enemies = [2, 5, 3] # 5 to show
     multiple= "no"
-    print('single')
     speed_switch="fastest"
     # speed_switch="normal"
     # stotsi taxitita
@@ -58,13 +57,12 @@ if experiment_mode == "single":
 elif experiment_mode == "multiple":
     list_of_enemies = [1, 3, 5]
     multiple = "yes"
-    speed_switch="normal"
-    print('multiple')
+    speed_switch="fastest"
 
 if experiment_type == "test":
     env = Environment(
                     experiment_name=experiment_name, 
-                    enemies=list_of_enemies,
+                    enemies=[list_of_enemies[0]],
                     multiplemode= multiple,
                     playermode='ai',
                     # playermode="human",
@@ -74,18 +72,12 @@ if experiment_type == "test":
                     player_controller=player_controller(hidden_neurons),
                     speed=speed_switch,
                     enemymode='static')
-
-# size of individuals # 265 
-# individuals_size = (env.get_num_sensors()+1)*hidden_neurons + (hidden_neurons+1)*5
-# if we are using uncorrelated mutation with one sigma -> 266 
-individuals_size_with_sigma = (env.get_num_sensors()+1)*hidden_neurons + (hidden_neurons+1)*5 + 1 
-
 # population size made of n individuals
-population_size = 20
+population_size = 100
 # max generations to run
-maximum_generations = 10
+maximum_generations = 30
 # total runs to run
-total_runs = 3 
+total_runs = 10
 
 # max iterations to run without improvement to indicate stagnation
 improvement_value = 0
@@ -139,13 +131,13 @@ def get_population_information(population, env):
     most_fit_value_position = np.argmax(population_fitness_array)
     most_fit_individual = population[most_fit_value_position]
     most_fit_value = population_fitness_array[most_fit_value_position]
-    print(f'most_fit_value: {most_fit_value}')
+    # print(f'most_fit_value: {most_fit_value}')
     # find average of population 
     mean_fitness_population = np.mean(population_fitness_array)
-    print(f'mean_fitness_population: {mean_fitness_population}')
+    # print(f'mean_fitness_population: {mean_fitness_population}')
     # find standard deviation of population
     standard_deviation_population = np.std(population_fitness_array)
-    print(f'standard_deviation_population: {standard_deviation_population}')
+    # print(f'standard_deviation_population: {standard_deviation_population}')
     # print(f'combined_list_population_individuals_and_fitness: {combined_list_population_individuals_and_fitness}')
     
     return combined_list_population_individuals_and_fitness, population_fitness_array, most_fit_value, most_fit_individual, mean_fitness_population, standard_deviation_population
@@ -467,57 +459,64 @@ def create_new_population_two_parents_two_offsprings(list_population_values_fitn
     return old_population
 
 
-# write numpy arrays to files 
-def save_array_to_files_with_defined_parameters(experiment_name_folder, folder_name, number_of_runs, current_run_value, number_of_generations, number_of_individuals, best_individuals_fitness_per_population, best_individual_per_population_array, average_fitness_per_population, standard_deviation_per_population):
-    # get time to attach it to the folder 
-    from datetime import datetime
-    if folder_name == "not_yet":
-        folder_name = (f"{datetime.now().strftime('%d_%m__%Y_%H_%M_%S_')}{number_of_runs}number_of_runs_{number_of_generations}_generations_{number_of_individuals}_number_of_individuals")
-        print(f'changing folder name to {folder_name}')
-    # # create and navigate to the experiment_name folder 
-    if not os.path.exists(experiment_name_folder):
-        os.makedirs(experiment_name_folder)
-    os.chdir(os.getcwd() +'/'+experiment_name_folder)
-    # print(f'working directory: {os.getcwd()}')
-    # create folder with time and specific tuple 
-    if not os.path.exists(folder_name):
-        os.mkdir(folder_name)
-    os.chdir(os.getcwd() + '/'+ folder_name)
-    if current_run_value != (number_of_runs):
-        os.mkdir(str(current_run_value)+'_run')
-        os.chdir(os.getcwd()+'/'+str(current_run_value)+'_run')
-    print(f'current directory to save the arrays: {os.getcwd()}')
-    # save the numpy arrays individually 
-    np.save('best_individuals_fitness_per_population', best_individuals_fitness_per_population)
-    np.save('best_individual_per_population_array', best_individual_per_population_array)
-    np.save('average_fitness_per_population', average_fitness_per_population)
-    np.save('standard_deviation_per_population', standard_deviation_per_population)
-    os.chdir('../../../')
-    # print(f'final_directory after save: {os.getcwd()}')
-    # print(f'check folder_name: {folder_name}')
-    return folder_name
+# # write numpy arrays to files 
+# def save_array_to_files_with_defined_parameters(experiment_name_folder, initial_directory_to_load_enemy, enemy_list, current_enemy_index, number_of_runs, current_run_value, number_of_generations, number_of_individuals, best_individuals_fitness_per_population, best_individual_per_population_array, average_fitness_per_population, standard_deviation_per_population):
+#     # get time to attach it to the folder 
+#     from datetime import datetime
+#     if os.getcwd() == initial_directory_to_load_enemy:
+#         folder_name = (f"{datetime.now().strftime('%d_%m__%Y_%H_%M_%S_')}{len(enemy_list)}_enemies_{number_of_runs}number_of_runs_{number_of_generations}_generations_{number_of_individuals}_number_of_individuals")
+#         print(f'changing folder name to {folder_name}')
+#     # # create and navigate to the experiment_name folder 
+#     if not os.path.exists(experiment_name_folder):
+#         os.makedirs(experiment_name_folder)
+#     os.chdir(os.getcwd() +'/'+experiment_name_folder)
+#     # print(f'working directory: {os.getcwd()}')
+#     # create folder with time and specific tuple 
+#     if not os.path.exists(folder_name):
+#         os.mkdir(folder_name)
+#     os.chdir(os.getcwd() + '/'+ folder_name)
+#     # create a folder for enemies
+#     if current_enemy_index != len(enemy_list):
+#         enemy_path_name= {str(enemy_list[current_enemy_index]) + '_enemy'}
+#         if not os.path.exists(enemy_path_name):
+#             os.mkdir(enemy_path_name)
+#     os.chdir(os.getcwd() + '/'+ enemy_path_name)
+#     # create a fodler for runs
+#     if current_run_value != (number_of_runs):
+#         os.mkdir(str(current_run_value)+'_run')
+#         os.chdir(os.getcwd()+'/'+str(current_run_value)+'_run')
+#     print(f'current directory to save the arrays: {os.getcwd()}')
+#     # save the numpy arrays individually 
+#     np.save('best_individuals_fitness_per_population', best_individuals_fitness_per_population)
+#     np.save('best_individual_per_population_array', best_individual_per_population_array)
+#     np.save('average_fitness_per_population', average_fitness_per_population)
+#     np.save('standard_deviation_per_population', standard_deviation_per_population)
+#     os.chdir('../../../../')
+#     # print(f'final_directory after save: {os.getcwd()}')
+#     # print(f'check folder_name: {folder_name}')
+    # return folder_name
 
-def load_numpy_files(first_algorithm_folder, specific_name_of_folder, specific_run):
-    print(os.getcwd())
-    os.chdir(os.getcwd() +'/' +first_algorithm_folder+'/' +specific_name_of_folder+'/'+specific_run+'_run')
+# def load_numpy_files(first_algorithm_folder, specific_name_of_folder, specific_run):
+#     print(os.getcwd())
+#     os.chdir(os.getcwd() +'/' +first_algorithm_folder+'/' +specific_name_of_folder+'/'+specific_run+'_run')
 
-    print(f'new_directory: {os.getcwd()}')
-    # os.chdir(path_till_numpy_files)
-    average_fitness_per_population_array_name = "average_fitness_per_population.npy"
-    average_fitness_per_population_array = np.load(average_fitness_per_population_array_name)
-    print(f'average_fitness_per_population_array:\n{average_fitness_per_population_array}')
-    best_individuals_fitness_per_population_array_name = "best_individuals_fitness_per_population.npy"
-    best_individuals_fitness_per_population_array = np.load(best_individuals_fitness_per_population_array_name)
-    print(f'best_individuals_fitness_per_population_array:\n{best_individuals_fitness_per_population_array}')
-    # array with the best individual per population
-    best_individual_per_population_array_name = "best_individual_per_population_array.npy"
-    best_individual_per_population_array = np.load(best_individual_per_population_array_name)
-    print(f'best_individual_per_population_array:\n{best_individual_per_population_array}')
-    # array of standard_deviations of all populations 
-    standard_deviation_per_population_array_name = "standard_deviation_per_population.npy"
-    standard_deviation_per_population_array = np.load(standard_deviation_per_population_array_name)
-    print(f'standard_deviation_per_population_array:\n{standard_deviation_per_population_array}')
-    return average_fitness_per_population_array, best_individuals_fitness_per_population_array, best_individual_per_population_array, standard_deviation_per_population_array
+#     print(f'new_directory: {os.getcwd()}')
+#     # os.chdir(path_till_numpy_files)
+#     average_fitness_per_population_array_name = "average_fitness_per_population.npy"
+#     average_fitness_per_population_array = np.load(average_fitness_per_population_array_name)
+#     print(f'average_fitness_per_population_array:\n{average_fitness_per_population_array}')
+#     best_individuals_fitness_per_population_array_name = "best_individuals_fitness_per_population.npy"
+#     best_individuals_fitness_per_population_array = np.load(best_individuals_fitness_per_population_array_name)
+#     print(f'best_individuals_fitness_per_population_array:\n{best_individuals_fitness_per_population_array}')
+#     # array with the best individual per population
+#     best_individual_per_population_array_name = "best_individual_per_population_array.npy"
+#     best_individual_per_population_array = np.load(best_individual_per_population_array_name)
+#     print(f'best_individual_per_population_array:\n{best_individual_per_population_array}')
+#     # array of standard_deviations of all populations 
+#     standard_deviation_per_population_array_name = "standard_deviation_per_population.npy"
+#     standard_deviation_per_population_array = np.load(standard_deviation_per_population_array_name)
+#     print(f'standard_deviation_per_population_array:\n{standard_deviation_per_population_array}')
+#     return average_fitness_per_population_array, best_individuals_fitness_per_population_array, best_individual_per_population_array, standard_deviation_per_population_array
 
 def create_graphs_for_each_run(average_fitness_per_population_array, best_individuals_fitness_per_population_array, standard_deviation_per_population, algorithm_name, working_directory, run_number):
     print(f'current_working_directory for graphs: {os.getcwd()}')
@@ -550,53 +549,113 @@ def create_graphs_for_each_run(average_fitness_per_population_array, best_indivi
     print(f'check_directory: {os.getcwd()}')
 
 def test_best_individual_five_times(individual, env):
-    print('*****Testing five times the best individual ******************')
+    # print('*****Testing five times the best individual ******************')
     best_individual_scores= np.zeros(shape=5)
     for game_runs in range(5):
         _, individual_information = test_individual(individual[:-1], env)
         best_individual_scores[game_runs] = individual_information[0]
-        print(f'best_individual_score:\n{best_individual_scores}')
+    # print(f'best_individual_score:\n{best_individual_scores}')
     return best_individual_scores
 
-def visualize_box_plot(array, algorithm_name ):
+# write numpy arrays to files 
+def create_directory_to_save_graphs(experiment_name_folder, initial_directory_to_load_enemy, enemy_list, number_of_runs, number_of_generations, number_of_individuals):
+    # get time to attach it to the folder 
+    from datetime import datetime
+    if os.getcwd() == initial_directory_to_load_enemy:
+        folder_name = (f"{datetime.now().strftime('%d_%m_%Y_%H_%M_%S_')}{len(enemy_list)}_enemies_{number_of_runs}number_of_runs_{number_of_generations}_generations_{number_of_individuals}_number_of_individuals")
+        # print(f'changing folder name to {folder_name}')
+    # # create and navigate to the experiment_name folder 
+    if not os.path.exists(experiment_name_folder):
+        os.makedirs(experiment_name_folder)
+    os.chdir(os.getcwd() +'/'+experiment_name_folder)
+    # print(f'working directory: {os.getcwd()}')
+    # create folder with time and specific tuple 
+    if not os.path.exists(folder_name):
+        os.mkdir(folder_name)
+    os.chdir(os.getcwd() + '/'+ folder_name)
+    current_folder= os.getcwd()
+    return current_folder
+    
+
+
+
+def visualize_box_plot(array, algorithm_name, enemy_list ):
+    # to create box plot documentation is followed:  https://matplotlib.org/stable/gallery/statistics/boxplot_demo.html 
     # print(f'current_directory to save box plot outside of runs: {os.getcwd()}')
     # print(f'array received: {array}')
-    plt.boxplot(array)
-    plt.xlabel("Algorithms")
-    plt.ylabel('Fitness Value')
-    plt.title('Mean Fitness Box Plot of over 5 runs of best individuals')
-    plt.savefig(f'{algorithm_name}_box_plot.png')
+    # print(f'array_received:\n{array}')
+    fig, ax1 = plt.subplots()
+    fig.subplots_adjust(left=0.075, right=0.95, top=0.9, bottom=0.25)
+    ax1.yaxis.grid(True, linestyle='-', which='major', color='lightgrey',alpha=0.5)
+    ax1.set(
+    axisbelow=True,  # Hide the grid behind plot objects
+    title='Mean Fitness Over 5 Runs of Best Individuals Per Enemy',
+    xlabel='Enemy Fought Against',
+    ylabel='Fitness',
+    )
+    ax1.boxplot(array)
+    ax1.set_xticklabels(enemy_list)
+
+    plt.savefig(f'{algorithm_name}_{len(enemy_list)}_enemies_box_plot.png')
     plt.close()
 
-def draw_line_plot(average_fitness_all_runs_per_generation, max_fitness_all_runs_per_generation, standard_deviation_average_fitness_all_runs_per_generation, standard_deviation_max_fitness_all_runs_per_generation, folder_name, algorithm_name):
-    if os.getcwd() != folder_name:
-        os.chdir(os.getcwd()+'/'+algorithm_name+'/'+folder_name)
-    folder_name=os.getcwd()+'/'+algorithm_name+'/'+folder_name
-    # print(f'cwd(): {os.getcwd()}')
-    # print(f'average_fitness_all_runs_per_generation:\n{average_fitness_all_runs_per_generation}')
-    # print(f'max_fitness_all_runs_per_generation:\n{max_fitness_all_runs_per_generation}')
-    # print(f'standard_deviation_average_fitness_all_runs_per_generation:\n{standard_deviation_average_fitness_all_runs_per_generation}')
-    # print(f'standard_deviation_max_fitness_all_runs_per_generation:\n{standard_deviation_max_fitness_all_runs_per_generation}')
+def draw_line_plot(average_fitness_all_runs_per_generation, max_fitness_all_runs_per_generation, standard_deviation_average_fitness_all_runs_per_generation, standard_deviation_max_fitness_all_runs_per_generation, algorithm_name, enemies_list):
+    fig, ax1 = plt.subplots()
+    fig.subplots_adjust(left=0.075, right=0.95, top=0.9, bottom=0.25)
+    ax1.yaxis.grid(True, linestyle='-', which='major', color='lightgrey',alpha=0.5)
+    ax1.set(
+    axisbelow=True,  # Hide the grid behind plot objects
+    title="Average And Max Fitness All Runs Per Generation Per Enemy",
+    xlabel='Generations',
+    ylabel='Fitness',
+    )
     number_of_generations_array= list(np.arange(len(average_fitness_all_runs_per_generation)))
-    print(f'number_of_generations_array:\n{number_of_generations_array}')
-    plt.errorbar(number_of_generations_array, max_fitness_all_runs_per_generation, yerr= standard_deviation_max_fitness_all_runs_per_generation,ecolor="black", label="Max Fitness")
-    plt.errorbar(number_of_generations_array, average_fitness_all_runs_per_generation, yerr= standard_deviation_average_fitness_all_runs_per_generation ,ecolor="black", label="Average Fitness", )
+    # print(f'number_of_generations_array:\n{number_of_generations_array}')
+    linestyle_plot= ["dashed", "solid", "dotted" ]
+    colors_plot= ['b', 'g', 'r']
+    for counter in range(len(enemies_list)):
+        plt.errorbar(number_of_generations_array, max_fitness_all_runs_per_generation[counter], yerr= standard_deviation_max_fitness_all_runs_per_generation[counter] ,color=colors_plot[counter], ecolor=colors_plot[counter], linestyle=linestyle_plot[counter], label=(f"Max Fit. En. {list_of_enemies[counter]}"))
+        plt.errorbar(number_of_generations_array, average_fitness_all_runs_per_generation[counter], yerr= standard_deviation_average_fitness_all_runs_per_generation[counter] ,color=colors_plot[counter], ecolor=colors_plot[counter], linestyle=linestyle_plot[counter], label=f"Avg. Fit. En. {list_of_enemies[counter]}", )
     plt.legend(loc="lower right")
-    plt.title('Average and max fitness of all runs per generation')
-    plt.xlabel('Generations')
-    plt.savefig('line_plot.png')
+    plt.savefig(f'{algorithm_name}_line_plot.png')
     # plt.show()
     plt.close()
-    return folder_name
+    
 
 if __name__ == '__main__':
     # start the timer
     start_time= time.perf_counter()
-    for enemy in list_of_enemies:
-        # env.update_parameter('enemies', [enemy])
+    # make an array for each enemy fpr the box plot 
+    three_enemies_ten_runs_five_times_individuals_arrays= np.zeros(shape=(len(list_of_enemies), total_runs))
+    # print(f'three_enemies_ten_runs_five_times_individuals_arrays.shape: {three_enemies_ten_runs_five_times_individuals_arrays.shape}')
+    initial_directory_to_load_enemy= os.getcwd()
+
+    # get average fitness and standarddeviation for all runs per generation per enemy 
+    three_enemies_average_fitness_all_runs_per_generation= np.zeros(shape=(len(list_of_enemies), maximum_generations))
+
+    three_enemies_standard_deviation_average_fitness_all_runs_per_generation= np.zeros(shape=(len(list_of_enemies), maximum_generations))
+    # get max fitness and standard deviation for all runs per generation per enemy
+    three_enemies_max_fitness_all_runs_per_generation= np.zeros(shape= (len(list_of_enemies), maximum_generations))
+    three_enemies_standard_deviation_max_fitness_all_runs_per_generation= np.zeros(shape=(len(list_of_enemies), maximum_generations))
+
+    for enemy_index in range(len(list_of_enemies)):
         # log state of the env
         # env.state_to_log()
-        
+        if os.getcwd() != initial_directory_to_load_enemy:
+            os.chdir('../../')
+        print(f'current_working_directory: {os.getcwd()}')
+
+        env.update_parameter('enemies', [list_of_enemies[enemy_index]])
+        # size of individuals # 265 
+        # individuals_size = (env.get_num_sensors()+1)*hidden_neurons + (hidden_neurons+1)*5
+        # if we are using uncorrelated mutation with one sigma -> 266 
+        individuals_size_with_sigma = (env.get_num_sensors()+1)*hidden_neurons + (hidden_neurons+1)*5 + 1 
+         
+
+
+
+
+
         # Line plot array for each generation per run - have run in rows and generations in columns and then pick up columnwise via [:, generation_number]
         max_fitness_ten_runs_twenty_generations_array= np.zeros(shape=(total_runs, maximum_generations)) 
         max_individual_value_ten_runs_twenty_generations_array= np.zeros(shape=(total_runs, individuals_size_with_sigma))
@@ -605,7 +664,8 @@ if __name__ == '__main__':
  
         # ******* Box plot array 
         # create a total_runs array for the five_times run of best_individuals 
-        ten_runs_five_times_individuals_arrays = np.zeros(shape=(total_runs))
+        # ten_runs_five_times_individuals_arrays = np.zeros(shape=(total_runs))
+        
         for current_run in range(total_runs):
             # keep a counter for the maximum of each generation and change it to this if fitness is more 
             # initialize a best counter score so that the first value is compareable
@@ -617,7 +677,7 @@ if __name__ == '__main__':
             mean_fitness_populations_array = np.zeros(shape=(maximum_generations))
             standard_deviation_populations_array = np.zeros(shape=(maximum_generations))
             for new_generation in range(maximum_generations):
-                print(f'********************Starting generation {new_generation}/{maximum_generations-1} **************************************')
+                # print(f'********************Starting generation {new_generation}/{maximum_generations-1} **************************************')
                 # add stagnation 
                 # if maximum_improvement_counter != improvement_counter:
                 if new_generation == 0:
@@ -648,16 +708,17 @@ if __name__ == '__main__':
                 # update solution of environment 
                 env.update_solutions([generation_population, population_fitness_array, best_individuals_fitness_populations_array, best_individuals_value_populations_array, mean_fitness_populations_array, standard_deviation_populations_array]) 
             # print("*******************************************************STATISTICS*****************************")
-            # print(f'\nbest_individuals_fitness_populations_array:\n{best_individuals_fitness_populations_array}')
+            print(f'\nbest_individuals_fitness_populations_array:\n{best_individuals_fitness_populations_array}')
             # print(f'\nbest_individuals_value_populations_array:\n{best_individuals_value_populations_array}')
             # print(f'\nmean_fitness_populations_array:\n{mean_fitness_populations_array}')
             # print(f'\nstandard_deviation_populations_array:\n{standard_deviation_populations_array}')
 
-            # Per run arrays - save the arrays 
-            working_directory = save_array_to_files_with_defined_parameters(experiment_name, working_directory, total_runs, current_run, maximum_generations, population_size,  best_individuals_fitness_populations_array, best_individuals_value_populations_array, mean_fitness_populations_array, standard_deviation_populations_array)
+            # ***************************** REMOVE ARRAY SAVES
+            # Per run arrays - save the arrays --- REMOVE ALL THE SAVING OF THE ARRAYS
+            # working_directory = save_array_to_files_with_defined_parameters(experiment_name, initial_directory_to_load_enemy, list_of_enemies, enemy_index, total_runs, current_run, maximum_generations, population_size,  best_individuals_fitness_populations_array, best_individuals_value_populations_array, mean_fitness_populations_array, standard_deviation_populations_array)
 
             # print("*******************************************Creating Graphs**************************************")
-            create_graphs_for_each_run(mean_fitness_populations_array, best_individuals_fitness_populations_array, standard_deviation_populations_array, experiment_name, working_directory, current_run)
+            # create_graphs_for_each_run(mean_fitness_populations_array, best_individuals_fitness_populations_array, standard_deviation_populations_array, experiment_name, working_directory, enemy_index, current_run)
 
             # Box Plot Data
                 # find best individual of all generations
@@ -673,7 +734,9 @@ if __name__ == '__main__':
             # print(f'mean_of_five_times_scores_best_individual: {mean_of_five_times_scores_best_individual}')
 
                 # add that value in the array for all runs regarding the mean_five_times_score_best_individual
-            ten_runs_five_times_individuals_arrays[current_run] = mean_of_five_times_scores_best_individual
+            # ten_runs_five_times_individuals_arrays[current_run] = mean_of_five_times_scores_best_individual
+            # add the value to the array of that enemy for all runs for mean score
+            three_enemies_ten_runs_five_times_individuals_arrays[enemy_index][current_run] = mean_of_five_times_scores_best_individual
 
 
             # Since we have the big arrays for all runs per generation, consider taking the values from the overall instead of having twice the arrays
@@ -703,44 +766,34 @@ if __name__ == '__main__':
         # print(f'max_fitness_all_generations_per_run:\n{max_fitness_all_generations_per_run}')
         # play 5 times with the max fitness individual - ****need to get the max individual 
 
-        #******* Line plot Average and max  # COnsider make box plot with line plot arrays
-
-        # get average fitness and standarddeviation for all runs per generation 
-        average_fitness_all_runs_per_generation= np.zeros(shape=maximum_generations)
-        standard_deviation_average_fitness_all_runs_per_generation= np.zeros(shape=maximum_generations)
-        
-
-        # get max fitness and standard deviation for all runs per generation
-        max_fitness_all_runs_per_generation= np.zeros(shape= maximum_generations)
-        standard_deviation_max_fitness_all_runs_per_generation= np.zeros(shape=maximum_generations)
+        #******* Line plot Average and max  # Consider make box plot with line plot arrays
 
         for generation_counter in range(maximum_generations):
             # average fitness 
             current_generation_average_fitness= mean_fitness_ten_runs_twenty_generations_array[:, generation_counter]
             # print(f'current_generation_average_fitness: {current_generation_average_fitness}')
-            average_fitness_all_runs_per_generation[generation_counter]= np.mean(current_generation_average_fitness)
-            standard_deviation_average_fitness_all_runs_per_generation[generation_counter]= np.std(current_generation_average_fitness)
+            three_enemies_average_fitness_all_runs_per_generation[enemy_index][generation_counter]= np.mean(current_generation_average_fitness)
+            three_enemies_standard_deviation_average_fitness_all_runs_per_generation[enemy_index][generation_counter]= np.std(current_generation_average_fitness)
 
             # max fitness 
             current_generation_max_fitness= max_fitness_ten_runs_twenty_generations_array[:, generation_counter]
             # print(f'current_generation_max_fitness: {current_generation_max_fitness}')
-            max_fitness_all_runs_per_generation[generation_counter]= np.max(current_generation_max_fitness)
-            standard_deviation_max_fitness_all_runs_per_generation[generation_counter]= np.std(current_generation_max_fitness)
-
-        # print(f'average_fitness_all_runs_per_generation: {average_fitness_all_runs_per_generation}')
-        # print(f'standard_deviation_average_fitness_all_runs_per_generation: {standard_deviation_average_fitness_all_runs_per_generation}')
-        # print(f'max_fitness_all_runs_per_generation: {max_fitness_all_runs_per_generation}')
-        # print(f'standard_deviation_max_fitness_all_runs_per_generation: {standard_deviation_max_fitness_all_runs_per_generation}')
-
-        # Draw Line Plot and save in current folder 
-        working_directory= draw_line_plot(average_fitness_all_runs_per_generation, max_fitness_all_runs_per_generation, standard_deviation_average_fitness_all_runs_per_generation, standard_deviation_max_fitness_all_runs_per_generation, working_directory, experiment_name)
-
+            three_enemies_max_fitness_all_runs_per_generation[enemy_index][generation_counter]= np.max(current_generation_max_fitness)
+            three_enemies_standard_deviation_max_fitness_all_runs_per_generation[enemy_index][generation_counter]= np.std(current_generation_max_fitness)
+            
+        
 
 
         # get the array of 10 means of the 10 runs of the best_individual
         # print(f'ten_runs_five_times_individuals_arrays\n{ten_runs_five_times_individuals_arrays}')
         # compute a box plot from the array of 10 runs for the algorithm
-        visualize_box_plot(ten_runs_five_times_individuals_arrays, experiment_name)
+        # visualize_box_plot(ten_runs_five_times_individuals_arrays, experiment_name, list_of_enemies)
+    working_directory= create_directory_to_save_graphs(experiment_name, initial_directory_to_load_enemy, list_of_enemies, total_runs, maximum_generations, population_size)
+    # print(f'three_enemies_ten_runs_five_times_individuals_arrays:\n{three_enemies_ten_runs_five_times_individuals_arrays}')
+    visualize_box_plot(three_enemies_ten_runs_five_times_individuals_arrays, "algorithm_b_test_three_enemies", list_of_enemies)
 
-        finish_time= time.perf_counter()
-        print(f'duration: {finish_time - start_time} seconds')
+    # Draw Line Plot and save in current folder  FOR ALL ENEMIES
+    draw_line_plot(three_enemies_average_fitness_all_runs_per_generation, three_enemies_max_fitness_all_runs_per_generation, three_enemies_standard_deviation_max_fitness_all_runs_per_generation, three_enemies_standard_deviation_average_fitness_all_runs_per_generation, experiment_name, list_of_enemies)
+
+    finish_time= time.perf_counter()
+    print(f'duration: {finish_time - start_time} seconds')
