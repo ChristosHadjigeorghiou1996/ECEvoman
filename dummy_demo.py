@@ -72,11 +72,11 @@ if experiment_type == "test":
 # size of individuals
 individuals_size = (env.get_num_sensors()+1)*hidden_neurons + (hidden_neurons+1)*5
 # population size made of n individuals
-population_size = 100
+population_size = 2
 # max generations to run
-maximum_generations = 30
+maximum_generations = 5
 # total runs to run
-total_runs = 10
+total_runs = 4
 
 # max iterations to run without improvement to indicate stagnation
 improvement_value = 0
@@ -90,9 +90,6 @@ probability_lower_bound = 0
 probability_upper_bound = 1
 # simple straightforward mutation 
 mutation_probability=0.25 # random number check literature
-# consider self-adaptin mutation 
-# crossover alpha for arithmetic crossover & later blend 
-crossover_alpha_parameter= 0.4 
 
 def create_random_uniform_population(size_of_populations, size_of_individuals):
     new_population = np.random.uniform(lower_limit_individual_value, upper_limit_individual_value, (size_of_populations, size_of_individuals))
@@ -549,7 +546,15 @@ def test_best_individual_five_times(individual, env):
     return best_individual_scores
 
 # write numpy arrays to files 
-def create_directory_to_save_graphs(experiment_name_folder, initial_directory_to_load_enemy, enemy_list, number_of_runs, number_of_generations, number_of_individuals):
+def create_directory_to_save_graphs(experiment_name_folder, initial_directory_to_load_enemy, enemy_list, number_of_runs, number_of_generations, number_of_individuals, box_plot_array, line_plot_avg_arr, line_plot_max_array, line_plot_std_max_array, line_plot_std_avg_arr):
+    # box plot - 1 
+    # print('box_plot_array\n', box_plot_array)
+    # line plot - 4 
+    # print('line_plot_avg_arr\n', line_plot_avg_arr)
+    # print('line_plot_max_array\n', line_plot_max_array)
+    # print('line_plot_std_max_array\n', line_plot_std_max_array)
+    # print('line_plot_std_avg_arr\n', line_plot_std_avg_arr)
+ 
     # get time to attach it to the folder 
     from datetime import datetime
     if os.getcwd() == initial_directory_to_load_enemy:
@@ -565,6 +570,16 @@ def create_directory_to_save_graphs(experiment_name_folder, initial_directory_to
         os.mkdir(folder_name)
     os.chdir(os.getcwd() + '/'+ folder_name)
     current_folder= os.getcwd()
+    # print(f'folder saving arrays: {os.getcwd()}')
+    # save the arrays
+    # boxplot 
+    np.save('box_plot_array.npy', box_plot_array)
+    # line graph
+    np.save('line_plot_avg_arr.npy', line_plot_avg_arr)
+    np.save('line_plot_max_array.npy', line_plot_max_array)
+    np.save('line_plot_std_max_array.npy', line_plot_std_max_array)
+    np.save('line_plot_std_avg_arr.npy', line_plot_std_avg_arr)
+
     return current_folder
     
 def visualize_box_plot(array, algorithm_name, enemy_list ):
@@ -572,7 +587,14 @@ def visualize_box_plot(array, algorithm_name, enemy_list ):
     # print(f'current_directory to save box plot outside of runs: {os.getcwd()}')
     # print(f'array received: {array}')
     # print(f'array_received:\n{array}')
+    box_plot_dict= {}
+    for counter in range(len(enemy_list)): 
+        box_plot_dict[enemy_list[counter]] = array[counter]
+    # print(f'box_plot_dict:\n{box_plot_dict}')
     fig, ax1 = plt.subplots()
+    ax1.boxplot(box_plot_dict.values())
+    ax1.set_xticklabels(box_plot_dict.keys())
+
     fig.subplots_adjust(left=0.075, right=0.95, top=0.9, bottom=0.25)
     ax1.yaxis.grid(True, linestyle='-', which='major', color='lightgrey',alpha=0.5)
     ax1.set(
@@ -581,18 +603,15 @@ def visualize_box_plot(array, algorithm_name, enemy_list ):
     xlabel='Enemy Fought Against',
     ylabel='Fitness',
     )
-    ax1.boxplot(array)
-    ax1.set_xticklabels(enemy_list)
-
     plt.savefig(f'{algorithm_name}_{len(enemy_list)}_enemies_box_plot.png')
     plt.close()
     
 def draw_line_plot(average_fitness_all_runs_per_generation, max_fitness_all_runs_per_generation, standard_deviation_average_fitness_all_runs_per_generation, standard_deviation_max_fitness_all_runs_per_generation, algorithm_name, enemies_list):
-    print(f'average_fitness_all_runs_per_generation:\n{average_fitness_all_runs_per_generation}')
-    print(f'standard_deviation_average_fitness_all_runs_per_generation:\n{standard_deviation_average_fitness_all_runs_per_generation}')
-    print(f'max_fitness_all_runs_per_generation:\n{max_fitness_all_runs_per_generation}')
-    print(f'standard_deviation_max_fitness_all_runs_per_generation:\n{standard_deviation_max_fitness_all_runs_per_generation}')
-    
+    # print(f'average_fitness_all_runs_per_generation.shape:\n{average_fitness_all_runs_per_generation.shape}')
+    # print(f'standard_deviation_average_fitness_all_runs_per_generation.shape:\n{standard_deviation_average_fitness_all_runs_per_generation.shape}')
+    # print(f'max_fitness_all_runs_per_generation.shape:\n{max_fitness_all_runs_per_generation.shape}')
+    # print(f'standard_deviation_max_fitness_all_runs_per_generation.shape:\n{standard_deviation_max_fitness_all_runs_per_generation.shape}')
+
     _, ax1 = plt.subplots()
     ax1.yaxis.grid(True, linestyle='-', which='major', color='lightgrey',alpha=0.5)
     ax1.set(
@@ -601,7 +620,7 @@ def draw_line_plot(average_fitness_all_runs_per_generation, max_fitness_all_runs
     xlabel='Generations',
     ylabel='Fitness',
     )
-    number_of_generations_array= list(np.arange(len(average_fitness_all_runs_per_generation)))
+    number_of_generations_array=  list(np.arange(average_fitness_all_runs_per_generation.shape[1]))
     # print(f'number_of_generations_array:\n{number_of_generations_array}')
     linestyle_plot= ["dashed", "solid", "dotted" ]
     colors_plot= ['b', 'g', 'r']
@@ -705,7 +724,7 @@ if __name__ == '__main__':
             three_enemies_standard_deviation_max_fitness_all_runs_per_generation[enemy_index][generation_counter]= np.std(current_generation_max_fitness)
 
             
-    working_directory= create_directory_to_save_graphs(experiment_name, initial_directory_to_load_enemy, list_of_enemies, total_runs, maximum_generations, population_size)
+    working_directory= create_directory_to_save_graphs(experiment_name, initial_directory_to_load_enemy, list_of_enemies, total_runs, maximum_generations, population_size, three_enemies_ten_runs_five_times_individuals_arrays, three_enemies_average_fitness_all_runs_per_generation, three_enemies_max_fitness_all_runs_per_generation, three_enemies_standard_deviation_max_fitness_all_runs_per_generation, three_enemies_standard_deviation_average_fitness_all_runs_per_generation)
     # print(f'three_enemies_ten_runs_five_times_individuals_arrays:\n{three_enemies_ten_runs_five_times_individuals_arrays}')
     visualize_box_plot(three_enemies_ten_runs_five_times_individuals_arrays, experiment_name, list_of_enemies)
     # Draw Line Plot and save in current folder  FOR ALL ENEMIES
