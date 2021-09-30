@@ -24,7 +24,7 @@ from random import choices, sample
 # time will enable timing of the algorithm
 import time
 # sqrt and exp for the uncorrelated mutation with one sigma
-from math import ceil, sqrt, exp
+from math import sqrt, exp
 
 # REMEMBER TO REMOVE
 # choose this for not using visuals and thus making experiments faster
@@ -72,19 +72,12 @@ if experiment_type == "test":
                     player_controller=player_controller(hidden_neurons),
                     speed=speed_switch,
                     enemymode='static')
-# # population size made of n individuals
-# population_size = 100
-# # max generations to run
-# maximum_generations = 30
-# # total runs to run
-# total_runs = 10
-
 # population size made of n individuals
-population_size = 2
+population_size = 100
 # max generations to run
-maximum_generations = 5
+maximum_generations = 30
 # total runs to run
-total_runs = 4
+total_runs = 10
 
 
 # max iterations to run without improvement to indicate stagnation
@@ -389,10 +382,11 @@ def uncorrelated_mutation_with_one_sigma(individual, probability_of_mutation):
     # print(f'individual with new sigma: {individual}')
     return individual
     
-def create_new_population_two_parents_two_offsprings(list_population_values_fitness, old_population, cur_generation ):
+def create_new_population_two_parents_two_offsprings(list_population_values_fitness, old_population, cur_generation, max_generations ):
     # if there are 40 parents they will create 40 offsprings but at the beginning where only cur_generation individuals are 
     # replaced, no need to create that much
-    size_of_mating_population= min(cur_generation * 5, 40)
+    # size_of_mating_population= min(cur_generation * 5, 40)
+    size_of_mating_population= min(cur_generation * 10, 60)
 
     # stochastically create the mating population of k individuals by using sigma scaling and normalization
     # size of mating population is 40 constant 40 but try to make it lower for less than 30 for less generations  
@@ -422,7 +416,9 @@ def create_new_population_two_parents_two_offsprings(list_population_values_fitn
     # all the worst ones. Half way through start replacing more than the worst
     # find worst individual    
     # replace according to the generations, as generations go, selection pressure is increased with the limit of the number of offsprings
-    number_of_individuals_to_replace= min(cur_generation, offspring_population_array.shape[0], 30)
+    # number_of_individuals_to_replace= min(cur_generation, offspring_population_array.shape[0], 30)
+    number_of_individuals_to_replace= min( (max_generations - cur_generation), offspring_population_array.shape[0])
+
     # print(f'number_of_individuals_to_replace: {number_of_individuals_to_replace} - min( {cur_generation} , {offspring_population_array.shape[0]})')
     positions_of_individual_to_replace= position_of_stochastic_worse_individuals(list_population_values_fitness, number_of_individuals_to_replace)
     for position in range(len(positions_of_individual_to_replace)):
@@ -697,7 +693,7 @@ if __name__ == '__main__':
                 if new_generation == 0:
                     generation_population = create_random_uniform_population(population_size, individuals_size_with_sigma)
                 else: 
-                    generation_population = create_new_population_two_parents_two_offsprings(combined_list_population_values_and_fitness, generation_population, new_generation)
+                    generation_population = create_new_population_two_parents_two_offsprings(combined_list_population_values_and_fitness, generation_population, new_generation, maximum_generations)
                 # get population information
                 combined_list_population_values_and_fitness ,population_fitness_array, best_individual_fitness, best_individual_value, average_fitness_population, standard_deviation_population = get_population_information(generation_population, env) 
 

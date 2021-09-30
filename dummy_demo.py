@@ -72,11 +72,11 @@ if experiment_type == "test":
 # size of individuals
 individuals_size = (env.get_num_sensors()+1)*hidden_neurons + (hidden_neurons+1)*5
 # population size made of n individuals
-population_size = 2
+population_size = 100
 # max generations to run
-maximum_generations = 5
+maximum_generations = 30
 # total runs to run
-total_runs = 4
+total_runs = 10
 
 # max iterations to run without improvement to indicate stagnation
 improvement_value = 0
@@ -385,7 +385,7 @@ def non_uniform_mutation_varying_sigma_mutate_individual(individual, probability
 def create_new_population_two_parents_two_offsprings(list_population_values_fitness, old_population, cur_generation, max_generations):
     # if there are 40 parents they will create 40 offsprings but at the beginning where only cur_generation individuals are 
     # replaced, no need to create that much
-    size_of_mating_population= min(cur_generation * 5, 40)
+    size_of_mating_population= min(cur_generation * 10, 60)
 
     # stochastically create the mating population of k individuals by using sigma scaling and normalization
     # size of mating population is 40 constant 40 but try to make it lower for less than 30 for less generations  
@@ -415,7 +415,7 @@ def create_new_population_two_parents_two_offsprings(list_population_values_fitn
     # all the worst ones. Half way through start replacing more than the worst
     # find worst individual    
     # replace according to the generations, as generations go, selection pressure is increased with the limit of the number of offsprings
-    number_of_individuals_to_replace= min(cur_generation, offspring_population_array.shape[0], 30)
+    number_of_individuals_to_replace= min( (max_generations - cur_generation), offspring_population_array.shape[0])
     # print(f'number_of_individuals_to_replace: {number_of_individuals_to_replace} - min( {cur_generation} , {offspring_population_array.shape[0]})')
     positions_of_individual_to_replace= position_of_stochastic_worse_individuals(list_population_values_fitness, number_of_individuals_to_replace)
     for position in range(len(positions_of_individual_to_replace)):
