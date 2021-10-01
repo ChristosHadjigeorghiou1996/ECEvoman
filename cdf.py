@@ -1202,15 +1202,15 @@ def cumulative_distribution_function(received_list, number_of_individuals_to_sel
     fitness_array= np.asarray(fitness_values_list)
     # print(f'fitness_array: {fitness_array}')
     mean_of_fitness_array= np.mean(fitness_array)
-    # print(f'mean_of_fitness_array: {mean_of_fitness_array}')
+    print(f'mean_of_fitness_array: {mean_of_fitness_array}')
     standard_deviation_of_fitness_array= np.std(fitness_array)
-    # print(f'standard_deviation_of_fitness_array: {standard_deviation_of_fitness_array}')
+    print(f'standard_deviation_of_fitness_array: {standard_deviation_of_fitness_array}')
     # c = 2
     sigma_scaling_array= np.zeros(shape=fitness_array.shape[0])
     for element_position, element_value in enumerate(fitness_array):
         new_value= max(element_value - ( mean_of_fitness_array - 2 * standard_deviation_of_fitness_array), 0)
         sigma_scaling_array[element_position] = new_value
-    # print(f'sigma_scaling_array:\n {sigma_scaling_array}')
+    print(f'sigma_scaling_array:\n {sigma_scaling_array}')
 
     # Min Max Normalization from scikit 
     # https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.MinMaxScaler.html#sklearn.preprocessing.MinMaxScaler
@@ -1277,5 +1277,7 @@ def cumulative_distribution_function(received_list, number_of_individuals_to_sel
     #             break
     # print(f'parents_chosen_list: {parents_chosen_list} and len: {len(parents_chosen_list)}')
 if __name__ == '__main__':
-    # mating_population= cumulative_distribution_function(sorted_list, 6 )
-    worst_individuals= cumulative_distribution_function_prioritizing_worst(sorted_list, 1)
+    mating_population= cumulative_distribution_function(sorted_list, 6 )
+
+    # worst_individuals= cumulative_distribution_function_prioritizing_worst(sorted_list, 1)
+

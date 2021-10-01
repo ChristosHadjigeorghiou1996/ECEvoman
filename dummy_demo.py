@@ -24,12 +24,6 @@ from random import choices, sample
 # time will enable timing of the algorithm
 import time
 
-# REMEMBER TO REMOVE
-# choose this for not using visuals and thus making experiments faster
-headless = True
-if headless:
-    os.environ["SDL_VIDEODRIVER"] = "dummy"
-
 # general infromation 
 experiment_type = "test"
 experiment_name = "algorithm_a_test_three_enemies" 
@@ -44,17 +38,11 @@ if not os.path.exists(experiment_name):
 hidden_neurons = 10  
  
 if experiment_mode == "single":
-    list_of_enemies = [2, 5, 3] # 5 to show
+    list_of_enemies = [8] # 5 to show
     multiple= "no"
     speed_switch="fastest"
     # speed_switch="normal"
-    # stotsi taxitita
-
-elif experiment_mode == "multiple":
-    list_of_enemies = [1, 3, 5]
-    multiple = "yes"
-    speed_switch="fastest"
-
+    
 if experiment_type == "test":
     env = Environment(
                     experiment_name=experiment_name, 
@@ -135,29 +123,29 @@ def get_population_information(population, env):
 
 # randomly select two parents in the population and combine to produce two children per alpha parameter --> 6  
 # instead of producing two children, produce more lets say 4-6 children and then populate to decide on the fitter version 
-def crossover_two_parents_six_children(first_parent, second_parent, alpha_parameter_array):
-    print(f'alpha_parameter_array:{alpha_parameter_array}')
-    print(f'parent_one: {first_parent}\nand shape: {first_parent.shape[0]}')
-    number_of_offsprings_array = np.zeros(shape=(len(alpha_parameter_array) * 2,first_parent.shape[0]))
-    print(f'number_of_offsprings_array\n{number_of_offsprings_array}\nand shape: {number_of_offsprings_array.shape}')
+# def crossover_two_parents_six_children(first_parent, second_parent, alpha_parameter_array):
+#     print(f'alpha_parameter_array:{alpha_parameter_array}')
+#     print(f'parent_one: {first_parent}\nand shape: {first_parent.shape[0]}')
+#     number_of_offsprings_array = np.zeros(shape=(len(alpha_parameter_array) * 2,first_parent.shape[0]))
+#     print(f'number_of_offsprings_array\n{number_of_offsprings_array}\nand shape: {number_of_offsprings_array.shape}')
 
-    for position, cross_over_paremeter in enumerate(alpha_parameter_array):
-        print(f'position: {position}, crossover_parameter: {cross_over_paremeter}')
-        position_in_array = position * 2
-        # print(f'P1: {first_parent}, P2: {second_parent}')
-        first_offspring = first_parent*cross_over_paremeter + (1-cross_over_paremeter) * second_parent 
-        # print(f'first_offspring: {first_offspring}')
-        # instead of testing now, just give the two offsprings and test once at the end the entire population
-        # first_offspring_values, first_offspring_information = test_individual(first_offspring, env)
-        second_offspring = second_parent * cross_over_paremeter + ( 1 - cross_over_paremeter) * first_parent
-        # print(f'second_offspring: {second_offspring}')
-        # second_offspring_values, second_offspring_information = test_individual(second_offspring, env)
-        # print(f'second_offspring_information: {second_offspring_information}')
-        # return first_offspring_values, first_offspring_information, second_offspring_values, second_offspring_information
-        number_of_offsprings_array[position_in_array] = first_offspring
-        number_of_offsprings_array[position_in_array + 1] = second_offspring
-        print(f'number_of_offsprings_array:{number_of_offsprings_array}')
-    return number_of_offsprings_array
+#     for position, cross_over_paremeter in enumerate(alpha_parameter_array):
+#         print(f'position: {position}, crossover_parameter: {cross_over_paremeter}')
+#         position_in_array = position * 2
+#         # print(f'P1: {first_parent}, P2: {second_parent}')
+#         first_offspring = first_parent*cross_over_paremeter + (1-cross_over_paremeter) * second_parent 
+#         # print(f'first_offspring: {first_offspring}')
+#         # instead of testing now, just give the two offsprings and test once at the end the entire population
+#         # first_offspring_values, first_offspring_information = test_individual(first_offspring, env)
+#         second_offspring = second_parent * cross_over_paremeter + ( 1 - cross_over_paremeter) * first_parent
+#         # print(f'second_offspring: {second_offspring}')
+#         # second_offspring_values, second_offspring_information = test_individual(second_offspring, env)
+#         # print(f'second_offspring_information: {second_offspring_information}')
+#         # return first_offspring_values, first_offspring_information, second_offspring_values, second_offspring_information
+#         number_of_offsprings_array[position_in_array] = first_offspring
+#         number_of_offsprings_array[position_in_array + 1] = second_offspring
+#         print(f'number_of_offsprings_array:{number_of_offsprings_array}')
+#     return number_of_offsprings_array
 
 # randomly select two parents in the population and combine to produce children per alpha parameter --> random uniform  
 def crossover_two_parents_alpha_uniform(first_parent, second_parent):
