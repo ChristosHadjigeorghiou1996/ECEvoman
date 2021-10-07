@@ -31,7 +31,7 @@ headless = True
 if headless:
     os.environ["SDL_VIDEODRIVER"] = "dummy"
 
-# go again to line and delete 51
+# go again to line and uncomment line 500 in environment 
 
 # general information 
 experiment_type = "test"
@@ -49,7 +49,7 @@ hidden_neurons = 10
 
 # 
 if experiment_mode == "single":
-    list_of_enemies = [8] 
+    list_of_enemies = [1, 2] 
     multiple= "no"
     speed_switch="fastest"
     # speed_switch="normal"
@@ -68,11 +68,11 @@ if experiment_type == "test":
                     speed=speed_switch,
                     enemymode='static')
 # population size made of n individuals
-population_size = 10
+population_size = 100
 # max generations to run
-maximum_generations = 3
+maximum_generations = 30
 # total runs to run
-total_runs = 2
+total_runs = 10
 
 
 # max iterations to run without improvement to indicate stagnation
