@@ -23,22 +23,12 @@ from sklearn.preprocessing import MinMaxScaler
 from random import choices, sample
 # time will enable timing of the algorithm
 import time
-# sqrt and exp for the uncorrelated mutation with one sigma
-from math import sqrt, exp
 
-# choose this for not using visuals and thus making experiments faster
-headless = True
-if headless:
-    os.environ["SDL_VIDEODRIVER"] = "dummy"
-
-# go again to line and delete 51
-
-# general information 
+# general infromation 
 experiment_type = "test"
-# experiment_type = "test_b"
-experiment_name = "algorithm_b_test_three_enemies" 
-experiment_mode = "single"
-
+experiment_name = "algorithm_a_multiple_test" 
+experiment_mode = "multiple"
+working_directory= "not_yet"
 # experiment_mode="multiple"
 # experiment_name = "algorithm_b"
 if not os.path.exists(experiment_name):
@@ -47,33 +37,36 @@ if not os.path.exists(experiment_name):
 # parameters to tune
 hidden_neurons = 10  
 
-# 
-if experiment_mode == "single":
-    list_of_enemies = [8] 
-    multiple= "no"
-    speed_switch="fastest"
-    # speed_switch="normal"
+# list of enemies 
+first_list_of_enemies= [2, 8]
+second_list_of_enemies= [3, 5]
+list_of_groups_of_enemies= [ first_list_of_enemies, second_list_of_enemies ]
 
-if experiment_type == "test":
-    env = Environment(
-                    experiment_name=experiment_name, 
-                    enemies=[list_of_enemies[0]],
-                    multiplemode= multiple,
-                    playermode='ai',
-                    # playermode="human",
-                    randomini= "yes",
-                    # playermode="human",
-                    # loadenemy="no",
-                    player_controller=player_controller(hidden_neurons),
-                    speed=speed_switch,
-                    enemymode='static')
+env = Environment(
+                experiment_name=experiment_name, 
+                enemies= list_of_groups_of_enemies[0],
+                multiplemode= "yes",
+                playermode='ai',
+                # playermode="human",
+                randomini= "yes",
+                # playermode="human",
+                # loadenemy="no",
+                player_controller=player_controller(hidden_neurons),
+                speed="fastest",
+                enemymode='static',
+                level=2)
+
+
+
+
+# size of individuals
+individuals_size = (env.get_num_sensors()+1)*hidden_neurons + (hidden_neurons+1)*5
 # population size made of n individuals
-population_size = 10
+population_size = 100
 # max generations to run
-maximum_generations = 3
+maximum_generations = 30
 # total runs to run
-total_runs = 2
-
+total_runs = 10
 
 # max iterations to run without improvement to indicate stagnation
 improvement_value = 0
@@ -88,36 +81,43 @@ probability_upper_bound = 1
 # simple straightforward mutation 
 mutation_probability=0.25 # random number check literature
 
+# get a seed for only stochastic variability to occur
+np.random.seed(6)
+ 
+
+ # consider initially linear ranking and then exponential ranking 
+
 def create_random_uniform_population(size_of_populations, size_of_individuals):
     new_population = np.random.uniform(lower_limit_individual_value, upper_limit_individual_value, (size_of_populations, size_of_individuals))
-    # print(f'new_population: {new_population} and new population.shape: {new_population.shape}')
-    # assign the initial sigma as 1 which is the value in the last column of every individual
-    new_population[:, -1]= 1
     # print(f'new_population: {new_population} and new population.shape: {new_population.shape}')
 
     return new_population
 
 def test_individual(individual, env):
+    print(f'individual:\n {individual}')
     individual_finess, individual_player_life, individual_enemy_life, individual_run_time = env.play(pcont=individual)
     # apparently creating numpy array from list of lists is depreciated - needs dtype=object
-    
-    individual_info = np.array((individual_finess, individual_player_life, individual_enemy_life, individual_run_time))
-    # print(f'individual_info: {individual_info} and shape: {individual_info.shape}')
+    # add individual gain
+    individual_gain= individual_player_life - individual_enemy_life
+    print(f'individual_gain: {individual_gain}')
+    # tptal_gain 
+    total_gain = individual_gain * len(list_of_groups_of_enemies[0])
+    print(f'total_gain: {total_gain}')
+    individual_info = np.array((individual_finess, total_gain))
+    print(f'individual_info: {individual_info} and shape: {individual_info.shape}')
     return individual, individual_info
 
 # iterate over the population and estimate the fitness to get the mean
 def get_population_information(population, env):
     # list with population_fitness and population individuals 
-    combined_list_population_individuals_and_fitness= []
+    combined_list_population_individual_fitness= []
     population_fitness_array = np.zeros(shape=population.shape[0])
     for individual_position in range(population.shape[0]):
         # check if i ever need individual 
-        # don't get consider last value for individual playing the game 
-        _, individual_information= test_individual(population[individual_position][:-1], env)
+        current_individual, individual_information= test_individual(population[individual_position], env)
         # print(f'individual_information: {individual_information} [0]: {individual_information[0]}')
-        # disregard the return individual as the full array with sigma is used afterwards
         population_fitness_array[individual_position] = individual_information[0]
-        combined_list_population_individuals_and_fitness.append([population[individual_position], individual_information[0]]) 
+        combined_list_population_individual_fitness.append([current_individual, individual_information[0]]) 
         # print(f'population_fitness_array:{population_fitness_array}')
 
     # find the most fit value 
@@ -131,30 +131,9 @@ def get_population_information(population, env):
     # find standard deviation of population
     standard_deviation_population = np.std(population_fitness_array)
     # print(f'standard_deviation_population: {standard_deviation_population}')
-    # print(f'combined_list_population_individuals_and_fitness: {combined_list_population_individuals_and_fitness}')
+    # print(f'combined_list_population_individual_fitness: {combined_list_population_individual_fitness}')
     
-    return combined_list_population_individuals_and_fitness, population_fitness_array, most_fit_value, most_fit_individual, mean_fitness_population, standard_deviation_population
-
-# randomly select two parents in the population and combine to produce children per alpha parameter --> random uniform  
-def crossover_two_parents_alpha_uniform(first_parent, second_parent):
-    # number_of_offspring_pairs= 1
-    # print(f'parent_one: {first_parent}\nand shape: {first_parent.shape[0]}')
-    # two children
-    # number_of_offsprings_array = np.zeros(shape=(number_of_offspring_pairs * 2, first_parent.shape[0]))
-    # print(f'number_of_offsprings_array\n{number_of_offsprings_array}\nand shape: {number_of_offsprings_array.shape}')
-    # for pair_position in range (number_of_offspring_pairs):
-    alpha_parameter= np.random.uniform(probability_lower_bound, probability_upper_bound)        
-        # print(f'alpha_parameter: {alpha_parameter}')
-    first_offspring= first_parent * alpha_parameter + second_parent * (1-alpha_parameter)
-    first_offspring[-1] = 1
-    # print(f'first_offspring: {first_offspring}\n and shape: {first_offspring.shape}')
-    # change the value of sigma for offspring to 1 
-    second_offspring= second_parent * alpha_parameter + first_parent * (1-alpha_parameter)
-    second_offspring[-1] = 1
-    # print(f'second_offspring: {second_offspring}\n and shape: {second_offspring.shape}')
-
-    # print(f'number_of_offsprings_array: {number_of_offsprings_array}')
-    return first_offspring, second_offspring
+    return combined_list_population_individual_fitness, population_fitness_array, most_fit_value, most_fit_individual, mean_fitness_population, standard_deviation_population
 
 # randomly select two parents in the population and combine to produce two children per alpha parameter --> 6  
 # instead of producing two children, produce more lets say 4-6 children and then populate to decide on the fitter version 
@@ -182,6 +161,22 @@ def crossover_two_parents_alpha_uniform(first_parent, second_parent):
 #         print(f'number_of_offsprings_array:{number_of_offsprings_array}')
 #     return number_of_offsprings_array
 
+# randomly select two parents in the population and combine to produce children per alpha parameter --> random uniform  
+def crossover_two_parents_alpha_uniform(first_parent, second_parent):
+    # number_of_offspring_pairs= 1
+    # print(f'parent_one: {first_parent}\nand shape: {first_parent.shape[0]}')
+    # two children
+    # number_of_offsprings_array = np.zeros(shape=(number_of_offspring_pairs * 2, first_parent.shape[0]))
+    # print(f'number_of_offsprings_array\n{number_of_offsprings_array}\nand shape: {number_of_offsprings_array.shape}')
+    # for pair_position in range (number_of_offspring_pairs):
+    alpha_parameter= np.random.uniform(probability_lower_bound, probability_upper_bound)        
+        # print(f'alpha_parameter: {alpha_parameter}')
+    first_offspring= first_parent * alpha_parameter + second_parent * (1-alpha_parameter)
+    second_offspring= second_parent * alpha_parameter + first_parent * (1-alpha_parameter)
+    # print(f'number_of_offsprings_array: {number_of_offsprings_array}')
+    return first_offspring, second_offspring
+
+
 # randomly select two parents and ensure they are not the same from given population
 def randomly_select_two_individuals(provided_population):
     # print(f'provided_population.shape: {provided_population.shape}')
@@ -206,7 +201,6 @@ def randomly_select_two_individuals(provided_population):
     
 
     return parent_one, parent_two, remaining_population
-
 
 # cumulative distribution function based on the fitness of each individual of array provided
 # Fitness Proportionate Selection and Sigma scaling, # check for min_value ***cite
@@ -355,57 +349,44 @@ def position_of_stochastic_worse_individuals(received_list, number_of_individual
     # print(f'index_to_select_list: {index_to_select_list}')
 
     return index_to_select_list
-    
-# log normal mutation operator - logarithm for changing sigma which has normal distribution
-def uncorrelated_mutation_with_one_sigma(individual, probability_of_mutation):
-    # individual is 265 + 1 
-    # each individual coordinate is mutated with a different noise as you draw a new value 
-    # value of t is recommended from the literature **cite
-    # boundary threshold of too close to 0 then push it to the boundary **cite
-    # initial sigma chosen to be 1 
-    boundary_threshold = 0.001
-    
-    learning_rate_t = 1 / (sqrt(individual.shape[0] - 1))
-    # get the sigma of the individual which is the last value 
-    sigma= individual[individual.shape[0] - 1]
-    # compute the new sigma for the individual 
-    new_sigma_for_individual = sigma *exp(learning_rate_t * np.random.normal(0, 1))
-    # print(f'new_sigma_for_individual  {new_sigma_for_individual} and boundary_threshold {boundary_threshold}')
-    if new_sigma_for_individual < boundary_threshold:
-        # print(f'new_sigma_for_individual  {new_sigma_for_individual} is less than {boundary_threshold}')
-        new_sigma_for_individual = boundary_threshold
-        # print(f'new_sigma after boundary threshold {new_sigma_for_individual}')
-    # create an np array to pre-compute the probabilities regarding mutation probability per coordinate of individual
-    random_uniform_mutation_probability_array= np.random.uniform(probability_lower_bound, probability_upper_bound, individual.shape[0] - 1)
-    # create an np array to pre-compute the noise drawn from normal distribution per coordinate
-    random_normal_noise_per_coordinate_array= np.random.normal(0, 1, individual.shape[0] - 1)
-    
-    # last value is sigma 
-    for individual_coordinate_position in range(individual.shape[0] - 1):
-        # print(f'individual.shape[0] - 1): {individual.shape[0] - 1}')
-        # print(f'random_uniform_mutation_probability_array[individual_coordinate_position]: {random_uniform_mutation_probability_array[individual_coordinate_position]} and probability_of_mutation: {probability_of_mutation}')
-        if random_uniform_mutation_probability_array[individual_coordinate_position] < probability_of_mutation:
-            # print(f'before individual[individual_coordinate_position]: {individual[individual_coordinate_position]}')
-            # print(f'random_normal_noise_per_coordinate_array[individual_coordinate_position] : {random_normal_noise_per_coordinate_array[individual_coordinate_position] }')
-            new_coordinate_value= individual[individual_coordinate_position] + new_sigma_for_individual *  random_normal_noise_per_coordinate_array[individual_coordinate_position]
-            # print(f'individual[individual_coordinate_position]: {individual[individual_coordinate_position]}')
-            # print(f'new_coordinate_value: {new_coordinate_value}')
-            # ensure is between lower bound and upper bound
-            if new_coordinate_value > upper_limit_individual_value:
-                new_coordinate_value= upper_limit_individual_value
-            elif new_coordinate_value < lower_limit_individual_value:
-                new_coordinate_value = lower_limit_individual_value
-            individual[individual_coordinate_position] = new_coordinate_value
-            # print(f'after individual[individual_coordinate_position]: {individual[individual_coordinate_position]}')
 
-    individual[individual.shape[0] - 1] = new_sigma_for_individual 
-    # print(f'individual with new sigma: {individual}')
+
+
+    
+
+
+def non_uniform_mutation_varying_sigma_mutate_individual(individual, probability_of_mutation, current_generation, total_number_of_generations):
+    # non-uniform mutation 
+    # the idea is to start with a high sigma value and as generations proceed to reduce the step --> sigma = 1 - (current/ max)
+    # current generations will be 1 instead of 0 as 0 is creation of uniform population thus -1 for the sake of starting with 1 as sigma
+    varying_sigma_value = 1 - ((current_generation - 1) / total_number_of_generations)
+    # print(f'varying_sigma: {varying_sigma_value}')
+    # create the random probabilities for the individual from before
+    random_uniform_mutation_probability_array= np.random.uniform(probability_lower_bound, probability_upper_bound, individual.shape[0])
+    # print(f'random_uniform_mutation_probability_array: {random_uniform_mutation_probability_array}')
+    # print(f'random_probability: {random_probability}')
+    # if prob > 0.25 
+    for individual_position, individual_value in enumerate(individual):
+        # if probability is less than the mutation probability then mutate
+        if random_uniform_mutation_probability_array[individual_position] < probability_of_mutation:
+            # print(f'random_uniform_mutation_probability_array[individual_position]: {random_uniform_mutation_probability_array[individual_position]}')
+            # print(f'individual_position: {individual_position} and value: {individual_value}')
+            # mutate by considering some noise drawn from Gaussian distribution and then check if the random probability is > 0.5 in which case add otherwise subtract 
+            mutated_value = individual_value + np.random.normal(0, varying_sigma_value)
+            # print(f'mutated_value before: {mutated_value}')
+            if mutated_value < lower_limit_individual_value:
+                mutated_value = lower_limit_individual_value
+            elif mutated_value > upper_limit_individual_value:
+                mutated_value = upper_limit_individual_value
+            # print(f'mutated_value after: {mutated_value}')
+            individual[individual_position] = mutated_value
+
+            # print(f'mutated individual: {mutated_individual}')
     return individual
     
-def create_new_population_two_parents_two_offsprings(list_population_values_fitness, old_population, cur_generation, max_generations ):
+def create_new_population_two_parents_two_offsprings(list_population_values_fitness, old_population, cur_generation, max_generations):
     # if there are 40 parents they will create 40 offsprings but at the beginning where only cur_generation individuals are 
     # replaced, no need to create that much
-    # size_of_mating_population= min(cur_generation * 5, 40)
     size_of_mating_population= min(cur_generation * 10, 60)
 
     # stochastically create the mating population of k individuals by using sigma scaling and normalization
@@ -414,7 +395,7 @@ def create_new_population_two_parents_two_offsprings(list_population_values_fitn
     # print(f'mating_population: {mating_population}')
     # offspring array from pairings of mating population
     offspring_population_array= np.zeros(shape=(len(mating_population), len(mating_population[0][0])))
-    # print(f'offspring_population_array.shape: {offspring_population_arrcur_generationay.shape}')
+    # print(f'offspring_population_array.shape: {offspring_population_array.shape}')
         # go over the list pair_wise and select the parents 
     for position_counter in range(0, len(mating_population) - 1, 2):
         # get value of individual parent and disregard fitness
@@ -423,9 +404,9 @@ def create_new_population_two_parents_two_offsprings(list_population_values_fitn
         parent_two= mating_population[position_counter + 1][0]
         # print(f'parent_two: {parent_two}')
         offspring_one, offpsring_two= crossover_two_parents_alpha_uniform(parent_one, parent_two)
-        mutated_offspring_one= uncorrelated_mutation_with_one_sigma(offspring_one, mutation_probability)
+        mutated_offspring_one= non_uniform_mutation_varying_sigma_mutate_individual(offspring_one, mutation_probability, cur_generation, max_generations)
         # print(f'mutated_offspring_one:\n{mutated_offspring_one}\nand shape: {mutated_offspring_one.shape}')
-        mutated_offspring_two= uncorrelated_mutation_with_one_sigma(offpsring_two, mutation_probability)
+        mutated_offspring_two= non_uniform_mutation_varying_sigma_mutate_individual(offpsring_two, mutation_probability, cur_generation, max_generations)
         # print(f'mutated_offspring_one:\n{mutated_offspring_two}\nand shape: {mutated_offspring_two.shape}')
         offspring_population_array[position_counter]= mutated_offspring_one
         offspring_population_array[position_counter + 1]= mutated_offspring_two
@@ -436,9 +417,7 @@ def create_new_population_two_parents_two_offsprings(list_population_values_fitn
     # all the worst ones. Half way through start replacing more than the worst
     # find worst individual    
     # replace according to the generations, as generations go, selection pressure is increased with the limit of the number of offsprings
-    # number_of_individuals_to_replace= min(cur_generation, offspring_population_array.shape[0], 30)
     number_of_individuals_to_replace= min( (max_generations - cur_generation), offspring_population_array.shape[0])
-
     # print(f'number_of_individuals_to_replace: {number_of_individuals_to_replace} - min( {cur_generation} , {offspring_population_array.shape[0]})')
     positions_of_individual_to_replace= position_of_stochastic_worse_individuals(list_population_values_fitness, number_of_individuals_to_replace)
     for position in range(len(positions_of_individual_to_replace)):
@@ -477,14 +456,13 @@ def create_new_population_two_parents_two_offsprings(list_population_values_fitn
 
     return old_population
 
-
 # # write numpy arrays to files 
-# def save_array_to_files_with_defined_parameters(experiment_name_folder, initial_directory_to_load_enemy, enemy_list, current_enemy_index, number_of_runs, current_run_value, number_of_generations, number_of_individuals, best_individuals_fitness_per_population, best_individual_per_population_array, average_fitness_per_population, standard_deviation_per_population):
+# def save_array_to_files_with_defined_parameters(experiment_name_folder, folder_name, number_of_runs, current_run_value, number_of_generations, number_of_individuals, best_individuals_fitness_per_population, best_individual_per_population_array, average_fitness_per_population, standard_deviation_per_population):
 #     # get time to attach it to the folder 
 #     from datetime import datetime
-#     if os.getcwd() == initial_directory_to_load_enemy:
-#         folder_name = (f"{datetime.now().strftime('%d_%m__%Y_%H_%M_%S_')}{len(enemy_list)}_enemies_{number_of_runs}number_of_runs_{number_of_generations}_generations_{number_of_individuals}_number_of_individuals")
-#         print(f'changing folder name to {folder_name}')
+#     if folder_name == "not_yet":
+#         folder_name = (f"{datetime.now().strftime('%d_%m_%Y_%H_%M_%S_')}{number_of_runs}number_of_runs_{number_of_generations}_generations_{number_of_individuals}_number_of_individuals")
+#         # print(f'changing folder name to {folder_name}')
 #     # # create and navigate to the experiment_name folder 
 #     if not os.path.exists(experiment_name_folder):
 #         os.makedirs(experiment_name_folder)
@@ -494,84 +472,77 @@ def create_new_population_two_parents_two_offsprings(list_population_values_fitn
 #     if not os.path.exists(folder_name):
 #         os.mkdir(folder_name)
 #     os.chdir(os.getcwd() + '/'+ folder_name)
-#     # create a folder for enemies
-#     if current_enemy_index != len(enemy_list):
-#         enemy_path_name= {str(enemy_list[current_enemy_index]) + '_enemy'}
-#         if not os.path.exists(enemy_path_name):
-#             os.mkdir(enemy_path_name)
-#     os.chdir(os.getcwd() + '/'+ enemy_path_name)
-#     # create a fodler for runs
 #     if current_run_value != (number_of_runs):
 #         os.mkdir(str(current_run_value)+'_run')
 #         os.chdir(os.getcwd()+'/'+str(current_run_value)+'_run')
-#     print(f'current directory to save the arrays: {os.getcwd()}')
+#     # print(f'current directory to save the arrays: {os.getcwd()}')
 #     # save the numpy arrays individually 
 #     np.save('best_individuals_fitness_per_population', best_individuals_fitness_per_population)
 #     np.save('best_individual_per_population_array', best_individual_per_population_array)
 #     np.save('average_fitness_per_population', average_fitness_per_population)
 #     np.save('standard_deviation_per_population', standard_deviation_per_population)
-#     os.chdir('../../../../')
+#     os.chdir('../../../')
 #     # print(f'final_directory after save: {os.getcwd()}')
 #     # print(f'check folder_name: {folder_name}')
-    # return folder_name
+#     return folder_name
 
 # def load_numpy_files(first_algorithm_folder, specific_name_of_folder, specific_run):
 #     print(os.getcwd())
 #     os.chdir(os.getcwd() +'/' +first_algorithm_folder+'/' +specific_name_of_folder+'/'+specific_run+'_run')
 
-#     print(f'new_directory: {os.getcwd()}')
+#     # print(f'new_directory: {os.getcwd()}')
 #     # os.chdir(path_till_numpy_files)
 #     average_fitness_per_population_array_name = "average_fitness_per_population.npy"
 #     average_fitness_per_population_array = np.load(average_fitness_per_population_array_name)
-#     print(f'average_fitness_per_population_array:\n{average_fitness_per_population_array}')
+#     # print(f'average_fitness_per_population_array:\n{average_fitness_per_population_array}')
 #     best_individuals_fitness_per_population_array_name = "best_individuals_fitness_per_population.npy"
 #     best_individuals_fitness_per_population_array = np.load(best_individuals_fitness_per_population_array_name)
-#     print(f'best_individuals_fitness_per_population_array:\n{best_individuals_fitness_per_population_array}')
+#     # print(f'best_individuals_fitness_per_population_array:\n{best_individuals_fitness_per_population_array}')
 #     # array with the best individual per population
 #     best_individual_per_population_array_name = "best_individual_per_population_array.npy"
 #     best_individual_per_population_array = np.load(best_individual_per_population_array_name)
-#     print(f'best_individual_per_population_array:\n{best_individual_per_population_array}')
+#     # print(f'best_individual_per_population_array:\n{best_individual_per_population_array}')
 #     # array of standard_deviations of all populations 
 #     standard_deviation_per_population_array_name = "standard_deviation_per_population.npy"
 #     standard_deviation_per_population_array = np.load(standard_deviation_per_population_array_name)
-#     print(f'standard_deviation_per_population_array:\n{standard_deviation_per_population_array}')
-#     return average_fitness_per_population_array, best_individuals_fitness_per_population_array, best_individual_per_population_array, standard_deviation_per_population_array
+#     # print(f'standard_deviation_per_population_array:\n{standard_deviation_per_population_array}')
+#     return average_fitness_per_population_array, best_individuals_fitness_per_population_array, best_individual_per_population_array, standard_deviation_per_population_array   
 
-# def create_graphs_for_each_run(average_fitness_per_population_array, best_individuals_fitness_per_population_array, standard_deviation_per_population, algorithm_name, working_directory, run_number):
-#     print(f'current_working_directory for graphs: {os.getcwd()}')
-#     #go to algorithm folder, specific date and in each run_number 
-#     os.chdir(algorithm_name+'/'+working_directory+'/'+str(run_number)+'_run')
-#     print(f'now in: {os.getcwd()}')
-#     # plot average fitness per population
-#     plt.plot(average_fitness_per_population_array)
-#     plt.xlabel('Generations')
-#     plt.ylabel('Fitness Value')
-#     plt.title('Average fitness per population')
-#     plt.savefig(f'{run_number}_average_fitness_per_population.png')
-#     plt.close()
-#     # plot best_individual_fitness_per_population
-#     plt.plot(best_individuals_fitness_per_population_array, 'ro')
-#     plt.xlabel('Generations')
-#     plt.ylabel('Fitness Value')
-#     plt.title('Fittest individual per population')
-#     plt.axis([0, len(best_individuals_fitness_per_population_array), min(best_individuals_fitness_per_population_array) - 5, max(best_individuals_fitness_per_population_array) + 5])
-#     plt.savefig(f'{run_number}_fittest_individual_per_population.png')
-#     plt.close()
-#     # plot standard deviation per population
-#     plt.plot(standard_deviation_per_population)
-#     plt.xlabel('Generations')
-#     plt.ylabel('Fitness Value')
-#     plt.title('Standard Deviation per population')
-#     plt.savefig(f'{run_number}_standard_deviation_per_population.png')
-#     plt.close()
-#     os.chdir('../../../')
+def create_graphs_for_each_run(average_fitness_per_population_array, best_individuals_fitness_per_population_array, standard_deviation_per_population, algorithm_name, working_directory, run_number):
+    # print(f'current_working_directory for graphs: {os.getcwd()}')
+    #go to algorithm folder, specific date and in each run_number 
+    os.chdir(algorithm_name+'/'+working_directory+'/'+str(run_number)+'_run')
+    # print(f'now in: {os.getcwd()}')
+    # plot average fitness per population
+    plt.plot(average_fitness_per_population_array)
+    plt.xlabel('Generations')
+    plt.ylabel('Fitness Value')
+    plt.title('Average fitness per population')
+    plt.savefig(f'{run_number}_average_fitness_per_population.png')
+    plt.close()
+    # plot best_individual_fitness_per_population
+    plt.plot(best_individuals_fitness_per_population_array, 'ro')
+    plt.xlabel('Generations')
+    plt.ylabel('Fitness Value')
+    plt.title('Fittest individual per population')
+    plt.axis([0, len(best_individuals_fitness_per_population_array), min(best_individuals_fitness_per_population_array) - 5, max(best_individuals_fitness_per_population_array) + 5])
+    plt.savefig(f'{run_number}_fittest_individual_per_population.png')
+    plt.close()
+    # plot standard deviation per population
+    plt.plot(standard_deviation_per_population)
+    plt.xlabel('Generations')
+    plt.ylabel('Fitness Value')
+    plt.title('Standard Deviation per population')
+    plt.savefig(f'{run_number}_standard_deviation_per_population.png')
+    plt.close()
+    os.chdir('../../../')
     # print(f'check_directory: {os.getcwd()}')
 
 def test_best_individual_five_times(individual, env):
     # print('*****Testing five times the best individual ******************')
     best_individual_scores= np.zeros(shape=5)
     for game_runs in range(5):
-        _, individual_information = test_individual(individual[:-1], env)
+        _, individual_information = test_individual(individual, env)
         best_individual_scores[game_runs] = individual_information[0]
     # print(f'best_individual_score:\n{best_individual_scores}')
     return best_individual_scores
@@ -602,6 +573,7 @@ def create_directory_to_save_graphs(experiment_name_folder, initial_directory_to
     os.chdir(os.getcwd() + '/'+ folder_name)
     current_folder= os.getcwd()
     # print(f'folder saving arrays: {os.getcwd()}')
+    # save the arrays
     # boxplot 
     np.save('box_plot_array.npy', box_plot_array)
     # line graph
@@ -665,60 +637,67 @@ def draw_line_plot(average_fitness_all_runs_per_generation, max_fitness_all_runs
     plt.savefig(f'{algorithm_name}_line_plot.png')
     # plt.show()
     plt.close()
-    
-    
+
+# define a new cons_multi as required by the docs
+def new_cons_multi(values):
+    return values.mean()
+ 
 
 if __name__ == '__main__':
     # start the timer
     start_time= time.perf_counter()
-    # make an array for each enemy fpr the box plot 
-    three_enemies_ten_runs_five_times_individuals_arrays= np.zeros(shape=(len(list_of_enemies), total_runs))
-    # print(f'three_enemies_ten_runs_five_times_individuals_arrays.shape: {three_enemies_ten_runs_five_times_individuals_arrays.shape}')
-    initial_directory_to_load_enemy= os.getcwd()
+    # one individual for each group for the values and for the fitness & gain
+    groups_array_best_individual_value = np.zeros(len(list_of_groups_of_enemies))
+    groups_array_best_individual_fitness_gain = np.zeros(len(list_of_groups_of_enemies))
+    for group_index in range(len(list_of_groups_of_enemies)):
+        list_of_enemies= list_of_groups_of_enemies[group_index]
+        print(f'group: {group_index} with enemies: {list_of_enemies}')
+        env.update_parameter('enemies', list_of_enemies)
+        env.cons_multi = new_cons_multi
+        # make an array for each enemy for the box plot 
+        enemies_ten_runs_five_times_individuals_arrays= np.zeros(shape=(len(list_of_enemies), total_runs))
 
-    # Line graph per enemy 
-    # get average fitness and standarddeviation for all runs per generation per enemy 
-    three_enemies_average_fitness_all_runs_per_generation= np.zeros(shape=(len(list_of_enemies), maximum_generations))
-    three_enemies_standard_deviation_average_fitness_all_runs_per_generation= np.zeros(shape=(len(list_of_enemies), maximum_generations))
-    # get max fitness and standard deviation for all runs per generation per enemy
-    three_enemies_max_fitness_all_runs_per_generation= np.zeros(shape= (len(list_of_enemies), maximum_generations))
-    three_enemies_standard_deviation_max_fitness_all_runs_per_generation= np.zeros(shape=(len(list_of_enemies), maximum_generations))
+        # print(f'three_enemies_ten_runs_five_times_individuals_arrays.shape: {three_enemies_ten_runs_five_times_individuals_arrays.shape}')
+        initial_directory_to_load_enemy= os.getcwd()
 
-    for enemy_index in range(len(list_of_enemies)):
+        # Line graph per enemy 
+        # get average fitness and standarddeviation for all runs per generation per enemy 
+        enemies_average_fitness_all_runs_per_generation= np.zeros(shape=(len(list_of_enemies), maximum_generations))
+        enemies_standard_deviation_average_fitness_all_runs_per_generation= np.zeros(shape=(len(list_of_enemies), maximum_generations))
+        # get max fitness and standard deviation for all runs per generation per enemy
+        three_enemies_max_fitness_all_runs_per_generation= np.zeros(shape= (len(list_of_enemies), maximum_generations))
+        three_enemies_standard_deviation_max_fitness_all_runs_per_generation= np.zeros(shape=(len(list_of_enemies), maximum_generations))
+
         # log state of the env
         # env.state_to_log()
         if os.getcwd() != initial_directory_to_load_enemy:
             os.chdir('../../')
         print(f'current_working_directory: {os.getcwd()}')
 
-        env.update_parameter('enemies', [list_of_enemies[enemy_index]])
-        # if we are using uncorrelated mutation with one sigma -> 266 
-        individuals_size_with_sigma = (env.get_num_sensors()+1)*hidden_neurons + (hidden_neurons+1)*5 + 1 
+        # size of individuals # 265 
+        individuals_size = (env.get_num_sensors()+1)*hidden_neurons + (hidden_neurons+1)*5
 
         # Line plot array for each generation per run - have run in rows and generations in columns and then pick up columnwise via [:, generation_number]
         max_fitness_ten_runs_twenty_generations_array= np.zeros(shape=(total_runs, maximum_generations)) 
         mean_fitness_ten_runs_twenty_generations_array= np.zeros(shape=(total_runs, maximum_generations))
 
-        # get the best individual of all generations per run per enemy 
-        ten_runs_best_individuals_arrays = np.zeros(shape=(total_runs, individuals_size_with_sigma ))
- 
-        # ******* Box plot array 
+        # ******* Box plot array         
         for current_run in range(total_runs):
             print(f'******************************Starting run {current_run} / {total_runs - 1}')
             # keep records of the best individual fitness, best individual, mean and sd of each population
             best_individuals_fitness_populations_array = np.zeros(shape=(maximum_generations))
-            best_individuals_value_populations_array = np.zeros(shape=(maximum_generations, individuals_size_with_sigma))
+            best_individuals_value_populations_array = np.zeros(shape=(maximum_generations, individuals_size))
             for new_generation in range(maximum_generations):
                 # print(f'********************Starting generation {new_generation}/{maximum_generations-1} **************************************')
                 # add stagnation 
                 # if maximum_improvement_counter != improvement_counter:
                 if new_generation == 0:
-                    generation_population = create_random_uniform_population(population_size, individuals_size_with_sigma)
+                    generation_population = create_random_uniform_population(population_size, individuals_size)
                 else: 
                     generation_population = create_new_population_two_parents_two_offsprings(combined_list_population_values_and_fitness, generation_population, new_generation, maximum_generations)
                 # get population information
                 combined_list_population_values_and_fitness ,population_fitness_array, best_individual_fitness, best_individual_value, average_fitness_population, standard_deviation_population = get_population_information(generation_population, env) 
-
+                
                 # box plots 
                 best_individuals_fitness_populations_array[new_generation] = best_individual_fitness
                 best_individuals_value_populations_array[new_generation] = best_individual_value
@@ -735,16 +714,6 @@ if __name__ == '__main__':
             best_individual_value_all_generations= best_individuals_value_populations_array[best_individual_fitness_position_all_generations]
             # print(f'\nbest_individual_value_all_generations:\n{best_individual_value_all_generations}')
 
-            # this is per run, once populated, save it  
-            ten_runs_best_individuals_arrays[current_run]= best_individual_value_all_generations
-
-            # check the current run being total_runs - 1 and then save
-            if current_run == (total_runs - 1):
-                print(f'ten_runs_best_individuals_arrays:\n{ten_runs_best_individuals_arrays}')
-                np.save(f'enemy_{list_of_enemies[enemy_index]}_ten_runs_best_individuals_arrays.npy', ten_runs_best_individuals_arrays)
-
-            
-
                 # test that individual 5 times and get the mean of those 5 
             five_times_scores_best_individual_array= test_best_individual_five_times(best_individual_value_all_generations, env)
                 # get the mean of the five_times_scores
@@ -752,7 +721,7 @@ if __name__ == '__main__':
             # print(f'mean_of_five_times_scores_best_individual: {mean_of_five_times_scores_best_individual}')
 
             three_enemies_ten_runs_five_times_individuals_arrays[enemy_index][current_run] = mean_of_five_times_scores_best_individual
-
+            
         #******* Line plot Average and max  # Consider make box plot with line plot arrays
 
         for generation_counter in range(maximum_generations):
@@ -766,12 +735,12 @@ if __name__ == '__main__':
             # print(f'current_generation_max_fitness: {current_generation_max_fitness}')
             three_enemies_max_fitness_all_runs_per_generation[enemy_index][generation_counter]= np.max(current_generation_max_fitness)
             three_enemies_standard_deviation_max_fitness_all_runs_per_generation[enemy_index][generation_counter]= np.std(current_generation_max_fitness)
-            
-            
-    working_directory= create_directory_to_save_graphs(experiment_name, initial_directory_to_load_enemy, list_of_enemies, total_runs, maximum_generations, population_size, three_enemies_ten_runs_five_times_individuals_arrays,  three_enemies_average_fitness_all_runs_per_generation, three_enemies_max_fitness_all_runs_per_generation, three_enemies_standard_deviation_max_fitness_all_runs_per_generation, three_enemies_standard_deviation_average_fitness_all_runs_per_generation)
-    # print(f'three_enemies_ten_runs_five_times_individuals_arrays:\n{three_enemies_ten_runs_five_times_individuals_arrays}')
-    visualize_box_plot(three_enemies_ten_runs_five_times_individuals_arrays, experiment_name, list_of_enemies)
-    # Draw Line Plot and save in current folder  FOR ALL ENEMIES
-    draw_line_plot(three_enemies_average_fitness_all_runs_per_generation, three_enemies_max_fitness_all_runs_per_generation, three_enemies_standard_deviation_max_fitness_all_runs_per_generation, three_enemies_standard_deviation_average_fitness_all_runs_per_generation, experiment_name, list_of_enemies)
+
+                
+        working_directory= create_directory_to_save_graphs(experiment_name, initial_directory_to_load_enemy, list_of_enemies, total_runs, maximum_generations, population_size, three_enemies_ten_runs_five_times_individuals_arrays, three_enemies_average_fitness_all_runs_per_generation, three_enemies_max_fitness_all_runs_per_generation, three_enemies_standard_deviation_max_fitness_all_runs_per_generation, three_enemies_standard_deviation_average_fitness_all_runs_per_generation)
+        # print(f'three_enemies_ten_runs_five_times_individuals_arrays:\n{three_enemies_ten_runs_five_times_individuals_arrays}')
+        visualize_box_plot(three_enemies_ten_runs_five_times_individuals_arrays, experiment_name, list_of_enemies)
+        # Draw Line Plot and save in current folder  FOR ALL ENEMIES
+        draw_line_plot(three_enemies_average_fitness_all_runs_per_generation, three_enemies_max_fitness_all_runs_per_generation, three_enemies_standard_deviation_max_fitness_all_runs_per_generation, three_enemies_standard_deviation_average_fitness_all_runs_per_generation, experiment_name, list_of_enemies)
     finish_time= time.perf_counter()
     print(f'duration: {finish_time - start_time} seconds')
