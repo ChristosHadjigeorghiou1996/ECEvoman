@@ -83,29 +83,30 @@ def draw_line_plot(average_fitness_all_runs_per_generation, max_fitness_all_runs
     # print(f'max_fitness_all_runs_per_generation.shape:\n{max_fitness_all_runs_per_generation.shape}')
     # print(f'standard_deviation_max_fitness_all_runs_per_generation.shape:\n{standard_deviation_max_fitness_all_runs_per_generation.shape}')
 
-    _, ax1 = plt.subplots()
-    ax1.yaxis.grid(True, linestyle='-', which='major', color='lightgrey',alpha=0.5)
-    ax1.set(
-    axisbelow=True,  # Hide the grid behind plot objects
-    title="Average / Max Fitness Per Generation Per Group of Enemy",
-    xlabel='Generations',
-    ylabel='Fitness',
-    )
-    number_of_generations_array=  list(np.arange(average_fitness_all_runs_per_generation.shape[1]))
-    # print(f'number_of_generations_array:\n{number_of_generations_array}')
-    linestyle_plot= ["dashed", "solid", "dotted" ]
-    colors_plot= ['b', 'g', 'r']
+
     for counter in range(len(enemies_list)):
+        _, ax1 = plt.subplots()
+        ax1.yaxis.grid(True, linestyle='-', which='major', color='lightgrey',alpha=0.5)
+        ax1.set(
+        axisbelow=True,  # Hide the grid behind plot objects
+        title="Average / Max Fitness Per Generation Per Group of Enemy",
+        xlabel='Generations',
+        ylabel='Fitness',
+        )
+        number_of_generations_array=  list(np.arange(average_fitness_all_runs_per_generation.shape[1]))
+        # print(f'number_of_generations_array:\n{number_of_generations_array}')
+        linestyle_plot= ["dashed", "solid", "dotted" ]
+        colors_plot= ['b', 'g', 'r']
         plt.errorbar(number_of_generations_array, max_fitness_all_runs_per_generation[counter], yerr= standard_deviation_max_fitness_all_runs_per_generation[counter] ,color=colors_plot[counter], ecolor=colors_plot[counter], linestyle=linestyle_plot[counter], label=(f"Max Fit. En. {enemies_list[counter]}"))
         plt.errorbar(number_of_generations_array, average_fitness_all_runs_per_generation[counter], yerr= standard_deviation_average_fitness_all_runs_per_generation[counter] ,color=colors_plot[counter], ecolor=colors_plot[counter], linestyle=linestyle_plot[counter], label=f"Avg. Fit. En. {enemies_list[counter]}", )
-    # https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot#:~:text=To%20place%20the%20legend%20outside,left%20corner%20of%20the%20legend.&text=A%20more%20versatile%20approach%20is,placed%2C%20using%20the%20bbox_to_anchor%20argument. - 
-    # Put a legend below current axis
-    # ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, ncol=5)
-    plt.subplots_adjust(right=0.7)
-    plt.legend(bbox_to_anchor=(1.04,0), loc="lower left", borderaxespad=0)
-    plt.savefig(f'{algorithm_name}_line_plot.png')
-    # plt.show()
-    plt.close()
+        # https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot#:~:text=To%20place%20the%20legend%20outside,left%20corner%20of%20the%20legend.&text=A%20more%20versatile%20approach%20is,placed%2C%20using%20the%20bbox_to_anchor%20argument. - 
+        # Put a legend below current axis
+        # ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, ncol=5)
+        plt.subplots_adjust(right=0.7)
+        plt.legend(bbox_to_anchor=(1.04,0), loc="lower left", borderaxespad=0)
+        plt.savefig(f'{algorithm_name}_{enemies_list[counter]}__line_plot.png')
+        # plt.show()
+        plt.close()
 
 def load_numpy_files():
     print(f'current_directory: {os.getcwd()}')
