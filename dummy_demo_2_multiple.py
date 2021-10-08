@@ -613,24 +613,45 @@ def visualize_box_plot(array, algorithm_name, enemy_list ):
     # print(f'current_directory to save box plot outside of runs: {os.getcwd()}')
     # print(f'array received: {array}')
     # print(f'array_received:\n{array}')
-    box_plot_dict= {}
-    for counter in range(len(enemy_list)): 
-        box_plot_dict[str(enemy_list[counter])] = array[counter]
-    # print(f'box_plot_dict:\n{box_plot_dict}')
-    fig, ax1 = plt.subplots()
-    ax1.boxplot(box_plot_dict.values())
-    ax1.set_xticklabels(box_plot_dict.keys())
+    # bo plot in the same plot for each group 
+    # box_plot_dict= {}
+    # for counter in range(len(enemy_list)): 
+    #     box_plot_dict[str(enemy_list[counter])] = array[counter]
+    # # print(f'box_plot_dict:\n{box_plot_dict}')
+    # fig, ax1 = plt.subplots()
+    # ax1.boxplot(box_plot_dict.values())
+    # ax1.set_xticklabels(box_plot_dict.keys())
 
-    fig.subplots_adjust(left=0.075, right=0.95, top=0.9, bottom=0.25)
-    ax1.yaxis.grid(True, linestyle='-', which='major', color='lightgrey',alpha=0.5)
-    ax1.set(
-    axisbelow=True,  # Hide the grid behind plot objects
-    title='Mean Gain Over 5 Runs of Best Individual Per Run Per Group ',
-    xlabel='Group Fought Against',
-    ylabel='Fitness',
-    )
-    plt.savefig(f'{algorithm_name}_{len(enemy_list)}_enemies_box_plot.png')
-    plt.close()
+    # fig.subplots_adjust(left=0.075, right=0.95, top=0.9, bottom=0.25)
+    # ax1.yaxis.grid(True, linestyle='-', which='major', color='lightgrey',alpha=0.5)
+    # ax1.set(
+    # axisbelow=True,  # Hide the grid behind plot objects
+    # title='Mean Gain Over 10 Runs of Best Individual Per Run Per Group ',
+    # xlabel='Group Fought Against',
+    # ylabel='Fitness',
+    # )
+    # plt.savefig(f'{algorithm_name}_{len(enemy_list)}_enemies_box_plot.png')
+    # plt.close()
+    
+    # each group has its own box plot 
+    for counter in range(len(enemy_list)): 
+        box_plot_dict= {}
+        box_plot_dict[str(enemy_list[counter])] = array[counter]
+        # print(f'box_plot_dict:\n{box_plot_dict}')
+        fig, ax1 = plt.subplots()
+        ax1.boxplot(box_plot_dict.values())
+        ax1.set_xticklabels(box_plot_dict.keys())
+
+        fig.subplots_adjust(left=0.075, right=0.95, top=0.9, bottom=0.25)
+        ax1.yaxis.grid(True, linestyle='-', which='major', color='lightgrey',alpha=0.5)
+        ax1.set(
+        axisbelow=True,  # Hide the grid behind plot objects
+        title='Mean Gain Over 10 Runs of Best Individual Per Run Per Group ',
+        xlabel='Group Fought Against',
+        ylabel='Fitness',
+        )
+        plt.savefig(f'{algorithm_name}_{enemy_list[counter]}_enemies_box_plot.png')
+        plt.close()
     
 def draw_line_plot(average_fitness_all_runs_per_generation, max_fitness_all_runs_per_generation, standard_deviation_average_fitness_all_runs_per_generation, standard_deviation_max_fitness_all_runs_per_generation, algorithm_name, enemies_list):
     # print(f'average_fitness_all_runs_per_generation.shape:\n{average_fitness_all_runs_per_generation.shape}')
