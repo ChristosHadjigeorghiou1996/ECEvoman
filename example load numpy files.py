@@ -23,47 +23,107 @@ from sklearn.preprocessing import MinMaxScaler
 from random import choices, sample
 # time will enable timing of the algorithm
 import time
+# sqrt and exp for the uncorrelated mutation with one sigma
+from math import sqrt, exp
 
-# general infromation 
+# choose this for not using visuals and thus making experiments faster
+headless = True
+if headless:
+    os.environ["SDL_VIDEODRIVER"] = "dummy"
+
+# go again to line and uncomment line 500 in environment 
+
+# general information 
 experiment_type = "test"
-experiment_name = "algorithm_a_test_three_enemies" 
-experiment_mode = "single"
-working_directory= "not_yet"
-# experiment_mode="multiple"
+# experiment_type = "test_b"
+experiment_name = "algorithm_b_multiple" 
+# experiment_mode = "single"
+experiment_mode= "multiple"
+
 # experiment_name = "algorithm_b"
 if not os.path.exists(experiment_name):
     os.makedirs(experiment_name)
 
 # parameters to tune
 hidden_neurons = 10  
- 
-if experiment_mode == "single":
-    list_of_enemies = [8] # 5 to show
-    multiple= "no"
-    speed_switch="fastest"
-    # speed_switch="normal"
-    
-if experiment_type == "test":
-    env = Environment(
-                    experiment_name=experiment_name, 
-                    enemies=[list_of_enemies[0]],
-                    multiplemode= multiple,
-                    playermode='ai',
-                    # playermode="human",
-                    randomini= "yes",
-                    # playermode="human",
-                    # loadenemy="no",
-                    player_controller=player_controller(hidden_neurons),
-                    speed=speed_switch,
-                    enemymode='static')
+
+# list of enemies 
+first_list_of_enemies= [2, 8]
+second_list_of_enemies= [3, 5]
+list_of_groups_of_enemies= [ first_list_of_enemies, second_list_of_enemies ]
+
+env = Environment(
+                experiment_name=experiment_name, 
+                enemies= list_of_groups_of_enemies[0],
+                multiplemode= "yes",
+                playermode='ai',
+                # playermode="human",
+                randomini= "yes",
+                # playermode="human",
+                # loadenemy="no",
+                player_controller=player_controller(hidden_neurons),
+                speed="fastest",
+                enemymode='static',
+                level=2)
+
+# if we are using uncorrelated mutation with one sigma -> 266 
+individuals_size_with_sigma = (env.get_num_sensors()+1)*hidden_neurons + (hidden_neurons+1)*5 + 1 
+# 
+
+# population size made of n individuals
+population_size = 10
+# max generations to run
+maximum_generations = 3
+# total runs to run
+total_runs = 3
+
+def draw_line_plot(average_fitness_all_runs_per_generation, max_fitness_all_runs_per_generation, standard_deviation_average_fitness_all_runs_per_generation, standard_deviation_max_fitness_all_runs_per_generation, algorithm_name, enemies_list):
+    # print(f'average_fitness_all_runs_per_generation.shape:\n{average_fitness_all_runs_per_generation.shape}')
+    # print(f'standard_deviation_average_fitness_all_runs_per_generation.shape:\n{standard_deviation_average_fitness_all_runs_per_generation.shape}')
+    # print(f'max_fitness_all_runs_per_generation.shape:\n{max_fitness_all_runs_per_generation.shape}')
+    # print(f'standard_deviation_max_fitness_all_runs_per_generation.shape:\n{standard_deviation_max_fitness_all_runs_per_generation.shape}')
+
+    _, ax1 = plt.subplots()
+    ax1.yaxis.grid(True, linestyle='-', which='major', color='lightgrey',alpha=0.5)
+    ax1.set(
+    axisbelow=True,  # Hide the grid behind plot objects
+    title="Average / Max Fitness Per Generation Per Group of Enemy",
+    xlabel='Generations',
+    ylabel='Fitness',
+    )
+    number_of_generations_array=  list(np.arange(average_fitness_all_runs_per_generation.shape[1]))
+    # print(f'number_of_generations_array:\n{number_of_generations_array}')
+    linestyle_plot= ["dashed", "solid", "dotted" ]
+    colors_plot= ['b', 'g', 'r']
+    for counter in range(len(enemies_list)):
+        plt.errorbar(number_of_generations_array, max_fitness_all_runs_per_generation[counter], yerr= standard_deviation_max_fitness_all_runs_per_generation[counter] ,color=colors_plot[counter], ecolor=colors_plot[counter], linestyle=linestyle_plot[counter], label=(f"Max Fit. En. {enemies_list[counter]}"))
+        plt.errorbar(number_of_generations_array, average_fitness_all_runs_per_generation[counter], yerr= standard_deviation_average_fitness_all_runs_per_generation[counter] ,color=colors_plot[counter], ecolor=colors_plot[counter], linestyle=linestyle_plot[counter], label=f"Avg. Fit. En. {enemies_list[counter]}", )
+    # https://stackoverflow.com/questions/4700614/how-to-put-the-legend-out-of-the-plot#:~:text=To%20place%20the%20legend%20outside,left%20corner%20of%20the%20legend.&text=A%20more%20versatile%20approach%20is,placed%2C%20using%20the%20bbox_to_anchor%20argument. - 
+    # Put a legend below current axis
+    # ax1.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), fancybox=True, shadow=True, ncol=5)
+    plt.subplots_adjust(right=0.7)
+    plt.legend(bbox_to_anchor=(1.04,0), loc="lower left", borderaxespad=0)
+    plt.savefig(f'{algorithm_name}_line_plot.png')
+    # plt.show()
+    plt.close()
 
 def load_numpy_files():
     print(f'current_directory: {os.getcwd()}')
 
     # print(f'new_directory: {os.getcwd()}')
     # os.chdir(path_till_numpy_files)
-    enemy_8_ten_runs_best_individuals_arrays = "enemy_8_ten_runs_best_individuals_arrays.npy"
-    enemy_8_ten_runs_best_individuals_arrays_loaded = np.load(enemy_8_ten_runs_best_individuals_arrays)
+    folder_to_go= "algorithm_b_multiple/08_10_2021_16_46_43_2_enemies_3_number_of_runs_3_generations_10_number_of_individuals"
+    os.chdir(os.getcwd() + "/"+ folder_to_go)
+    line_plot_avg_arr = "line_plot_avg_arr.npy"
+    line_plot_max_array = "line_plot_max_array.npy"
+    line_plot_std_avg_arr = "line_plot_std_avg_arr.npy"
+    line_plot_std_max_array = "line_plot_std_max_array.npy"
+    line_plot_avg_arr_loaded = np.load(line_plot_avg_arr)
+    line_plot_max_array_loaded = np.load(line_plot_max_array)
+    line_plot_std_avg_arr_loaded = np.load(line_plot_std_avg_arr)
+    line_plot_std_max_array_loaded = np.load(line_plot_std_max_array)
+    draw_line_plot(line_plot_avg_arr_loaded, line_plot_max_array_loaded, line_plot_std_max_array_loaded, line_plot_std_avg_arr_loaded, experiment_name, list_of_groups_of_enemies)
+
     # # print(f'average_fitness_per_population_array:\n{average_fitness_per_population_array}')
     # best_individuals_fitness_per_population_array_name = "best_individuals_fitness_per_population.npy"
     # best_individuals_fitness_per_population_array = np.load(best_individuals_fitness_per_population_array_name)
@@ -76,7 +136,6 @@ def load_numpy_files():
     # standard_deviation_per_population_array_name = "standard_deviation_per_population.npy"
     # standard_deviation_per_population_array = np.load(standard_deviation_per_population_array_name)
     # # print(f'standard_deviation_per_population_array:\n{standard_deviation_per_population_array}')
-    return enemy_8_ten_runs_best_individuals_arrays_loaded
 
 def test_best_individual_five_times(individual, env):
     # print('*****Testing five times the best individual ******************')
@@ -95,8 +154,9 @@ def test_individual(individual, env):
     # print(f'individual_info: {individual_info} and shape: {individual_info.shape}')
     return individual, individual_info
 
-enemy_8_example = load_numpy_files()
-print(f'enemy_8_file:\n {enemy_8_example}')
-# test the first best individual 
-first_run_individual = enemy_8_example[0]
-five_times_scores_best_individual_array= test_best_individual_five_times(first_run_individual, env)
+# enemy_8_example = load_numpy_files()
+# print(f'enemy_1_file.shape:\n {enemy_8_example.shape}')
+# # test the first best individual 
+# first_run_individual = enemy_8_example[0]
+# five_times_scores_best_individual_array= test_best_individual_five_times(first_run_individual, env)
+load_numpy_files()
