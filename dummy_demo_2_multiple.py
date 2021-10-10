@@ -200,11 +200,12 @@ def crossover_two_parents_alpha_uniform(first_parent, second_parent):
     alpha_parameter= np.random.uniform(probability_lower_bound, probability_upper_bound)        
         # print(f'alpha_parameter: {alpha_parameter}')
     first_offspring= first_parent * alpha_parameter + second_parent * (1-alpha_parameter)
-    first_offspring[-1] = 1
+    # sigma of new offspring will be calculated according to their parents 
+    # first_offspring[-1] = 1
     # print(f'first_offspring: {first_offspring}\n and shape: {first_offspring.shape}')
     # change the value of sigma for offspring to 1 
     second_offspring= second_parent * alpha_parameter + first_parent * (1-alpha_parameter)
-    second_offspring[-1] = 1
+    # second_offspring[-1] = 1
     # print(f'second_offspring: {second_offspring}\n and shape: {second_offspring.shape}')
 
     # print(f'number_of_offsprings_array: {number_of_offsprings_array}')
