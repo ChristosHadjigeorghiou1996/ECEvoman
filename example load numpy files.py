@@ -108,7 +108,9 @@ def draw_line_plot(average_fitness_all_runs_per_generation, max_fitness_all_runs
         # plt.show()
         plt.close()
 
-def load_numpy_files():
+
+
+def load_numpy_files_and_draw_line_graph():
     print(f'current_directory: {os.getcwd()}')
 
     # print(f'new_directory: {os.getcwd()}')
@@ -138,6 +140,56 @@ def load_numpy_files():
     # standard_deviation_per_population_array = np.load(standard_deviation_per_population_array_name)
     # # print(f'standard_deviation_per_population_array:\n{standard_deviation_per_population_array}')
 
+def create_smart_population(combined_specialized_population, size_of_population, size_of_individual):
+   # 80 specialized comtrollers so need population_size - 80 individuals
+    remaining_population= np.random.uniform(-1, 1, size=(size_of_population - combined_specialized_population.shape[0], size_of_individual))
+    print(f'remaining_population.shape: {remaining_population.shape}')
+    print(f'remaining_population:\n{remaining_population}')
+    # make sigma of remaining_population to 1 
+    remaining_population[:, -1] = 1 
+    smart_initialized_population= np.vstack((combined_specialized_population, remaining_population))
+    print(f'smart_initialized_population.shape: {smart_initialized_population.shape}')
+    print(f'smart_initialized_population:\n{smart_initialized_population}')
+    return smart_initialized_population
+
+# load the specialized_individuals once and only the remaining random in each time 
+def load_specialized_individuals_per_enemy():
+    print(f'current_directory: {os.getcwd()}')
+    # print(f'new_directory: {os.getcwd()}')
+    # os.chdir(path_till_numpy_files)
+    folder_to_go= "specialized_agents"
+    os.chdir(os.getcwd() + "/"+ folder_to_go)
+    enemy_one_ten_runs_array = "enemy_1_ten_runs_best_individuals_arrays.npy"
+    enemy_one_ten_runs_array_loaded = np.load(enemy_one_ten_runs_array)
+    enemy_two_ten_runs_array = "enemy_2_ten_runs_best_individuals_arrays.npy"
+    enemy_two_ten_runs_array_loaded = np.load(enemy_two_ten_runs_array)
+    enemy_three_ten_runs_array = "enemy_3_ten_runs_best_individuals_arrays.npy"
+    enemy_three_ten_runs_array_loaded = np.load(enemy_three_ten_runs_array)
+    enemy_four_ten_runs_array = "enemy_4_ten_runs_best_individuals_arrays.npy"
+    enemy_four_ten_runs_array_loaded = np.load(enemy_four_ten_runs_array)
+    enemy_five_ten_runs_array = "enemy_5_ten_runs_best_individuals_arrays.npy"
+    enemy_five_ten_runs_array_loaded = np.load(enemy_five_ten_runs_array)
+    enemy_six_ten_runs_array = "enemy_6_ten_runs_best_individuals_arrays.npy"
+    enemy_six_ten_runs_array_loaded = np.load(enemy_six_ten_runs_array)
+    enemy_seven_ten_runs_array = "enemy_7_ten_runs_best_individuals_arrays.npy"
+    enemy_seven_ten_runs_array_loaded = np.load(enemy_seven_ten_runs_array)
+    enemy_eight_ten_runs_array = "enemy_8_ten_runs_best_individuals_arrays.npy"
+    enemy_eight_ten_runs_array_loaded = np.load(enemy_eight_ten_runs_array)
+    print(f'enemy_one_ten_runs_array_loaded.shape:{enemy_one_ten_runs_array_loaded.shape}')
+    print(f'enemy_one_ten_runs_array_loaded:\n{enemy_one_ten_runs_array_loaded}')
+    print(f'enemy_two_ten_runs_array_loaded:\n{enemy_two_ten_runs_array_loaded}')
+    print(f'enemy_three_ten_runs_array_loaded:\n{enemy_three_ten_runs_array_loaded}')
+    print(f'enemy_four_ten_runs_array_loaded:\n{enemy_four_ten_runs_array_loaded}')
+    print(f'enemy_five_ten_runs_array_loaded:\n{enemy_five_ten_runs_array_loaded}')
+    print(f'enemy_six_ten_runs_array_loaded:\n{enemy_six_ten_runs_array_loaded}')
+    print(f'enemy_seven_ten_runs_array_loaded:\n{enemy_seven_ten_runs_array_loaded}')
+    print(f'enemy_eight_ten_runs_array_loaded:\n{enemy_eight_ten_runs_array_loaded}')
+    combined_specialized_individuals= np.vstack((enemy_one_ten_runs_array_loaded,enemy_two_ten_runs_array_loaded, enemy_three_ten_runs_array_loaded, enemy_four_ten_runs_array_loaded, enemy_five_ten_runs_array_loaded, enemy_six_ten_runs_array_loaded, enemy_seven_ten_runs_array_loaded, enemy_eight_ten_runs_array_loaded))
+    print(f'combined_specialized_individuals:\n{combined_specialized_individuals}')
+    print(f'combined_specialized_individuals.shape: {combined_specialized_individuals.shape}')
+    return combined_specialized_individuals
+
+
 def test_best_individual_five_times(individual, env):
     # print('*****Testing five times the best individual ******************')
     best_individual_scores= np.zeros(shape=5)
@@ -160,4 +212,10 @@ def test_individual(individual, env):
 # # test the first best individual 
 # first_run_individual = enemy_8_example[0]
 # five_times_scores_best_individual_array= test_best_individual_five_times(first_run_individual, env)
-load_numpy_files()
+# load_numpy_files_and_draw_line_graph()
+# load specialized agents folder 
+if __name__ == "__main__":
+    specialized_population= load_specialized_individuals_per_enemy()
+    final_population = create_smart_population(specialized_population, 100, 266)
+    print(f'final_population:\n{final_population}')
+    print(f'final_population.shape:\n{final_population.shape}')

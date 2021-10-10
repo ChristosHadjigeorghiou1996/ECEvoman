@@ -34,8 +34,8 @@ if headless:
 # go again to line and uncomment line 500 in environment 
 
 # general information 
-experiment_type = "test"
-# experiment_type = "test_b"
+experiment_type = ["method_1_random_uniform_initialization", "method_2_smart_initialization"]
+
 experiment_name = "algorithm_b_multiple" 
 # experiment_mode = "single"
 experiment_mode= "multiple"
@@ -71,11 +71,11 @@ individuals_size_with_sigma = (env.get_num_sensors()+1)*hidden_neurons + (hidden
 # 
 
 # population size made of n individuals
-population_size = 10
+population_size = 100
 # max generations to run
-maximum_generations = 3
+maximum_generations = 30
 # total runs to run
-total_runs = 3
+total_runs = 10
 
 
 # max iterations to run without improvement to indicate stagnation
@@ -90,6 +90,57 @@ probability_lower_bound = 0
 probability_upper_bound = 1
 # simple straightforward mutation 
 mutation_probability=0.25 # random number check literature
+
+# instead of create_random_uniform_population, opt for smart intiialization
+# load the specialized_individuals once and only the remaining random in each time 
+def load_specialized_individuals_per_enemy():
+    print(f'current_directory: {os.getcwd()}')
+    # print(f'new_directory: {os.getcwd()}')
+    # os.chdir(path_till_numpy_files)
+    folder_to_go= "specialized_agents"
+    os.chdir(os.getcwd() + "/"+ folder_to_go)
+    enemy_one_ten_runs_array = "enemy_1_ten_runs_best_individuals_arrays.npy"
+    enemy_one_ten_runs_array_loaded = np.load(enemy_one_ten_runs_array)
+    enemy_two_ten_runs_array = "enemy_2_ten_runs_best_individuals_arrays.npy"
+    enemy_two_ten_runs_array_loaded = np.load(enemy_two_ten_runs_array)
+    enemy_three_ten_runs_array = "enemy_3_ten_runs_best_individuals_arrays.npy"
+    enemy_three_ten_runs_array_loaded = np.load(enemy_three_ten_runs_array)
+    enemy_four_ten_runs_array = "enemy_4_ten_runs_best_individuals_arrays.npy"
+    enemy_four_ten_runs_array_loaded = np.load(enemy_four_ten_runs_array)
+    enemy_five_ten_runs_array = "enemy_5_ten_runs_best_individuals_arrays.npy"
+    enemy_five_ten_runs_array_loaded = np.load(enemy_five_ten_runs_array)
+    enemy_six_ten_runs_array = "enemy_6_ten_runs_best_individuals_arrays.npy"
+    enemy_six_ten_runs_array_loaded = np.load(enemy_six_ten_runs_array)
+    enemy_seven_ten_runs_array = "enemy_7_ten_runs_best_individuals_arrays.npy"
+    enemy_seven_ten_runs_array_loaded = np.load(enemy_seven_ten_runs_array)
+    enemy_eight_ten_runs_array = "enemy_8_ten_runs_best_individuals_arrays.npy"
+    enemy_eight_ten_runs_array_loaded = np.load(enemy_eight_ten_runs_array)
+    print(f'enemy_one_ten_runs_array_loaded.shape:{enemy_one_ten_runs_array_loaded.shape}')
+    print(f'enemy_one_ten_runs_array_loaded:\n{enemy_one_ten_runs_array_loaded}')
+    print(f'enemy_two_ten_runs_array_loaded:\n{enemy_two_ten_runs_array_loaded}')
+    print(f'enemy_three_ten_runs_array_loaded:\n{enemy_three_ten_runs_array_loaded}')
+    print(f'enemy_four_ten_runs_array_loaded:\n{enemy_four_ten_runs_array_loaded}')
+    print(f'enemy_five_ten_runs_array_loaded:\n{enemy_five_ten_runs_array_loaded}')
+    print(f'enemy_six_ten_runs_array_loaded:\n{enemy_six_ten_runs_array_loaded}')
+    print(f'enemy_seven_ten_runs_array_loaded:\n{enemy_seven_ten_runs_array_loaded}')
+    print(f'enemy_eight_ten_runs_array_loaded:\n{enemy_eight_ten_runs_array_loaded}')
+    combined_specialized_individuals= np.vstack((enemy_one_ten_runs_array_loaded,enemy_two_ten_runs_array_loaded, enemy_three_ten_runs_array_loaded, enemy_four_ten_runs_array_loaded, enemy_five_ten_runs_array_loaded, enemy_six_ten_runs_array_loaded, enemy_seven_ten_runs_array_loaded, enemy_eight_ten_runs_array_loaded))
+    print(f'combined_specialized_individuals:\n{combined_specialized_individuals}')
+    print(f'combined_specialized_individuals.shape: {combined_specialized_individuals.shape}')
+    return combined_specialized_individuals
+ 
+
+def create_smart_population(combined_specialized_population, size_of_population, size_of_individual):
+   # 80 specialized comtrollers so need population_size - 80 individuals
+    remaining_population= np.random.uniform(lower_limit_individual_value, upper_limit_individual_value, size=(size_of_population - combined_specialized_population.shape[0], size_of_individual))
+    print(f'remaining_population.shape: {remaining_population.shape}')
+    print(f'remaining_population:\n{remaining_population}')
+    # make sigma of remaining_population to 1 
+    remaining_population[:, -1] = 1 
+    smart_initialized_population= np.vstack((combined_specialized_population, remaining_population))
+    print(f'smart_initialized_population.shape: {smart_initialized_population.shape}')
+    print(f'smart_initialized_population:\n{smart_initialized_population}')
+    return smart_initialized_population
 
 def create_random_uniform_population(size_of_populations, size_of_individuals):
     new_population = np.random.uniform(lower_limit_individual_value, upper_limit_individual_value, (size_of_populations, size_of_individuals))
@@ -106,7 +157,7 @@ def test_individual(individual, env):
     
     individual_info = np.array((individual_finess, individual_player_life, individual_enemy_life, individual_run_time))
     # print(f'individual_info: {individual_info} and shape: {individual_info.shape}')
-    return individual, individual_info
+    return individual_info
 
 # iterate over the population and estimate the fitness to get the mean
 def get_population_information(population, env):
@@ -116,7 +167,7 @@ def get_population_information(population, env):
     for individual_position in range(population.shape[0]):
         # check if i ever need individual 
         # don't get consider last value for individual playing the game 
-        _, individual_information= test_individual(population[individual_position][:-1], env)
+        individual_information= test_individual(population[individual_position][:-1], env)
         # print(f'individual_information: {individual_information} [0]: {individual_information[0]}')
         # disregard the return individual as the full array with sigma is used afterwards
         population_fitness_array[individual_position] = individual_information[0]
@@ -573,7 +624,7 @@ def create_new_population_two_parents_two_offsprings(list_population_values_fitn
 
 
 # write numpy arrays to files 
-def create_directory_to_save_graphs(experiment_name_folder, initial_directory_to_load_enemy, enemy_list, number_of_runs, number_of_generations, number_of_individuals, box_plot_array, line_plot_avg_arr, line_plot_max_array, line_plot_std_max_array, line_plot_std_avg_arr):
+def create_directory_to_save_graphs(experiment_name_folder, initial_directory_to_load_enemy, enemy_list, number_of_runs, number_of_generations, number_of_individuals, box_plot_array, line_plot_avg_arr, line_plot_max_array, line_plot_std_max_array, line_plot_std_avg_arr, enemy_groups_best_individual_values, enemy_groups_best_individual_fitness):
     # box plot - 1 
     # print('box_plot_array\n', box_plot_array)
     # line plot - 4 
@@ -605,6 +656,9 @@ def create_directory_to_save_graphs(experiment_name_folder, initial_directory_to
     np.save('line_plot_max_array.npy', line_plot_max_array)
     np.save('line_plot_std_max_array.npy', line_plot_std_max_array)
     np.save('line_plot_std_avg_arr.npy', line_plot_std_avg_arr)
+    # get the other algorithm best groups and load both algorithms --> 4 best individual as 2 algorithms with each 2 groups
+    np.save('enemy_groups_best_individual_value.npy', enemy_groups_best_individual_values)
+    np.save('enemy_groups_best_individual_fitness.npy', enemy_groups_best_individual_fitness)
 
     return current_folder
     
@@ -712,7 +766,7 @@ def new_cons_multi(values):
     return values.mean()
  
 # best individual from both groups which will be compared with dummy_demo multiple 
-def get_average_player_life_enemy_life_test_best_individual_five_times_all_enemies(individual, env):
+def get_average_player_life_enemy_life_test_best_individual_five_times_all_enemies_per_run(individual, env):
     # get a list of all enemies -> 1 .. 8  for 5 runs 
     enemy_list = list(np.arange(8) + 1) 
     best_individual_gain_5_times = np.zeros(shape=(5))
@@ -720,32 +774,55 @@ def get_average_player_life_enemy_life_test_best_individual_five_times_all_enemi
     # print('*****Testing five times the best individual ******************')
     env.update_parameter('enemies', enemy_list)
     for game_runs in range(5):
-        _, individual_information = test_individual(individual[:-1], env)
+        individual_information = test_individual(individual[:-1], env)
         best_individual_gain_5_times[game_runs]= individual_information[1] - individual_information[2]
 
-    mean_best_individual_gaine= np.mean(best_individual_gain_5_times)
+    mean_best_individual_gain= np.mean(best_individual_gain_5_times)
     # save the best individual for competition
     # np.save(f'best_individual.npy', individual)
 
     # print(f'best_individual_score:\n{best_individual_scores}')
-    return mean_best_individual_gaine
+    return mean_best_individual_gain
 
-def test_best_individual_five_times(individual, env):
+# this is for the table which is called for all the enemies 
+# overall enemies not for each enemy *********************************************
+def test_best_individual_five_times_table_per_enemy(individual, env):
+    enemy_list = list(np.arange(8) + 1) 
     # print('*****Testing five times the best individual ******************')
-    best_individual_scores= np.zeros(shape=5)
-    for game_runs in range(5):
-        _, individual_information = test_individual(individual[:-1], env)
-        best_individual_scores[game_runs] = individual_information[0]
-    # print(f'best_individual_score:\n{best_individual_scores}')
-    return best_individual_scores
+    # for each of the 5 games consider the player life and enemy life for each enemy
+    best_individual_energy_points= np.zeros(shape=(5, 2 * len(enemy_list)))
+    # set multimode off and train per enemy 
+    env.update_parameter("multiplemode", "no")
+    # now we train per enemy as task 1 
+    for pos, enemy in enumerate(enemy_list):
+        print(f'enemy: {enemy}')
+        env.update_parameter('enemies', enemy)
+        for game_runs in range(5):
+            individual_information = test_individual(individual[:-1], env)
+            print(f'individual_information: {individual_information}')
+            best_individual_energy_points[game_runs][pos] = individual_information[1]
+            best_individual_energy_points[game_runs][(pos* 2) + 1] = individual_information[2]
+    print(f'best_individual_energy_points:\n{best_individual_energy_points}')
+    # get the mean values of all 5 runs for each column and use that array for the table 
+    mean_best_individual_energy_points_per_enemy= np.zeros(shape=(2 * len(enemy_list)))
+    # go through all the columns of player point & enemy point per enemy
+    for column in range(best_individual_energy_points.shape[1]):
+        array_column_values = best_individual_energy_points[:, column]
+        print(f'array_column_values: {array_column_values}')
+        mean_best_individual_energy_points_per_enemy[column]= np.mean(array_column_values)
+
+    return mean_best_individual_energy_points_per_enemy
+
 
 if __name__ == '__main__':
     # start the timer
     start_time= time.perf_counter()
-    # one individual for each group for the values and for the fitness & gain
-    groups_array_best_individual_value = np.zeros(shape=(len(list_of_groups_of_enemies), individuals_size_with_sigma))
-    groups_array_best_gain = np.zeros(shape=(len(list_of_groups_of_enemies)))
+    # load the specialized individuals once in case they are going to be used via the smart initialization. If not used, simply ignore it. 
+    specialized_individuals_population= load_specialized_individuals_per_enemy()
 
+    # one individual for each group for the values and for the fitness
+    groups_array_best_individual_value = np.zeros(shape=(len(list_of_groups_of_enemies), individuals_size_with_sigma))
+    groups_array_best_fitness = np.zeros(shape=(len(list_of_groups_of_enemies)))
     # make an array for each enemy fpr the box plot 
     different_groups_ten_runs_five_times_individuals_arrays= np.zeros(shape=(len(list_of_groups_of_enemies), total_runs))
     # print(f'different_groups_ten_runs_five_times_individuals_arrays.shape: {different_groups_ten_runs_five_times_individuals_arrays.shape}')
@@ -767,15 +844,16 @@ if __name__ == '__main__':
 
         if os.getcwd() != initial_directory_to_load_enemy:
             os.chdir('../../')
-        print(f'current_working_directory: {os.getcwd()}')
+        # print(f'current_working_directory: {os.getcwd()}')
 
 
         # Line plot array for each generation per run - have run in rows and generations in columns and then pick up columnwise via [:, generation_number]
         max_fitness_ten_runs_twenty_generations_array= np.zeros(shape=(total_runs, maximum_generations)) 
         mean_fitness_ten_runs_twenty_generations_array= np.zeros(shape=(total_runs, maximum_generations))
 
-        # get the best individual of all generations per run per enemy 
+        # get the best individual of all generations per run per enemy and its fitness
         ten_runs_best_individuals_arrays = np.zeros(shape=(total_runs, individuals_size_with_sigma ))
+        ten_runs_best_individuals_fitness_arrays = np.zeros(shape=(total_runs))
 
         # ******* Box plot array 
         for current_run in range(total_runs):
@@ -788,7 +866,13 @@ if __name__ == '__main__':
                 # add stagnation 
                 # if maximum_improvement_counter != improvement_counter:
                 if new_generation == 0:
-                    generation_population = create_random_uniform_population(population_size, individuals_size_with_sigma)
+                    # flip the initialization_method for experiment type to change EA initialization method
+                    # experiment_type[0] is the random initialization, [1] is the smart initialization
+                    initialization_method= experiment_type[0]
+                    if initialization_method== experiment_type[0]:
+                        generation_population = create_random_uniform_population(population_size, individuals_size_with_sigma)
+                    elif initialization_method == experiment_type[1]:
+                        generation_population = create_smart_population(specialized_individuals_population, population_size, individuals_size_with_sigma) 
                 else: 
                     generation_population = create_new_population_two_parents_two_offsprings(combined_list_population_values_and_fitness, generation_population, new_generation, maximum_generations)
                 # get population information
@@ -805,14 +889,18 @@ if __name__ == '__main__':
 
             # Box Plot Data
                 # find best individual of all generations
-            print(f'best_individuals_fitness_populations_array:\n{best_individuals_fitness_populations_array}')
+            # print(f'best_individuals_fitness_populations_array:\n{best_individuals_fitness_populations_array}')
             best_individual_fitness_position_all_generations = np.argmax(best_individuals_fitness_populations_array)
-            print(f'\nbest_individual_fitness_position_all_generations:\n{best_individual_fitness_position_all_generations}')
+            # print(f'\nbest_individual_fitness_position_all_generations:\n{best_individual_fitness_position_all_generations}')
             best_individual_value_all_generations= best_individuals_value_populations_array[best_individual_fitness_position_all_generations]
-            print(f'\nbest_individual_value_all_generations:\n{best_individual_value_all_generations}')
+            # get the fitness value of that individual 
+            best_individual_fitness_all_generations= best_individuals_fitness_populations_array[best_individual_fitness_position_all_generations]
+            # print(f'\nbest_individual_value_all_generations:\n{best_individual_value_all_generations}')
 
             # this is per run, once populated, save it  
             ten_runs_best_individuals_arrays[current_run]= best_individual_value_all_generations
+            ten_runs_best_individuals_fitness_arrays[current_run] = best_individual_fitness_all_generations
+            
 
             # # check the current run being total_runs - 1 and then save to get the values of best individual of all runs per enemy 
             # if current_run == (total_runs - 1):
@@ -822,13 +910,19 @@ if __name__ == '__main__':
             
 
             # test that individual 5 times and get the mean of those 5 
-            mean_of_five_times_gains_best_individual_array= get_average_player_life_enemy_life_test_best_individual_five_times_all_enemies(best_individual_value_all_generations, env)
+            mean_of_five_times_gains_best_individual_array= get_average_player_life_enemy_life_test_best_individual_five_times_all_enemies_per_run(best_individual_value_all_generations, env)
                 # get the mean of the five_times_scores
             # mean_of_five_times_scores_best_individual = np.mean(five_times_scores_best_individual_array)
             # print(f'mean_of_five_times_scores_best_individual: {mean_of_five_times_scores_best_individual}')
 
             different_groups_ten_runs_five_times_individuals_arrays[group_index][current_run] = mean_of_five_times_gains_best_individual_array
-            print(f'different_groups_ten_runs_five_times_individuals_arrays[{group_index}][{current_run}]: {different_groups_ten_runs_five_times_individuals_arrays}')
+            # print(f'different_groups_ten_runs_five_times_individuals_arrays[{group_index}][{current_run}]: {different_groups_ten_runs_five_times_individuals_arrays}')
+        
+        # Once all runs have finished find the best individual per enemy and get the value, fitness and gains 
+        position_of_best_individual_fitness_per_enemy_for_all_runs_array = np.argmax(ten_runs_best_individuals_fitness_arrays)
+        groups_array_best_individual_value[group_index] = ten_runs_best_individuals_arrays[position_of_best_individual_fitness_per_enemy_for_all_runs_array]
+        groups_array_best_fitness[group_index] = ten_runs_best_individuals_fitness_arrays[position_of_best_individual_fitness_per_enemy_for_all_runs_array]        
+
 
         #******* Line plot Average and max 
         for generation_counter in range(maximum_generations):
@@ -844,7 +938,7 @@ if __name__ == '__main__':
             different_groups_standard_deviation_max_fitness_all_runs_per_generation[group_index][generation_counter]= np.std(current_generation_max_fitness)
             
         
-    working_directory= create_directory_to_save_graphs(experiment_name, initial_directory_to_load_enemy, list_of_groups_of_enemies, total_runs, maximum_generations, population_size, different_groups_ten_runs_five_times_individuals_arrays, different_groups_average_fitness_all_runs_per_generation, different_groups_max_fitness_all_runs_per_generation, different_groups_standard_deviation_max_fitness_all_runs_per_generation, different_groups_standard_deviation_average_fitness_all_runs_per_generation )
+    working_directory= create_directory_to_save_graphs(experiment_name, initial_directory_to_load_enemy, list_of_groups_of_enemies, total_runs, maximum_generations, population_size, different_groups_ten_runs_five_times_individuals_arrays, different_groups_average_fitness_all_runs_per_generation, different_groups_max_fitness_all_runs_per_generation, different_groups_standard_deviation_max_fitness_all_runs_per_generation, different_groups_standard_deviation_average_fitness_all_runs_per_generation, groups_array_best_individual_value, groups_array_best_fitness )
     visualize_box_plot(different_groups_ten_runs_five_times_individuals_arrays, experiment_name, list_of_groups_of_enemies)
     # Draw Line Plot and save in current folder  FOR ALL ENEMIES
     draw_line_plot(different_groups_average_fitness_all_runs_per_generation, different_groups_max_fitness_all_runs_per_generation, different_groups_standard_deviation_max_fitness_all_runs_per_generation, different_groups_standard_deviation_average_fitness_all_runs_per_generation, experiment_name, list_of_groups_of_enemies)
