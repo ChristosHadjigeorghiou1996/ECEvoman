@@ -159,13 +159,14 @@ def uncorrelated_mutation_with_one_sigma(individual, probability_of_mutation, cu
     return individual 
 
 if __name__ == '__main__':
-    for ind in combined_list_population_individual_fitness:
-        ind_value= ind[0]
-        print(f'ind_value: {ind_value} and shape: {ind_value.shape}')
-        modified_ind_value= ind[0][:-1]
-        print(f'modified_ind_value: {modified_ind_value} and shape: {modified_ind_value.shape}')
-        ind_fitness= ind[1]
-        print(f'ind_fitness: {ind_fitness}')
-        mutated_individual= uncorrelated_mutation_with_one_sigma(ind_value, 0.25, 1, 20)
+    print(type(combined_list_population_individual_fitness))
+    # for ind in combined_list_population_individual_fitness:
+    #     ind_value= ind[0]
+    #     print(f'ind_value: {ind_value} and shape: {ind_value.shape}')
+    #     modified_ind_value= ind[0][:-1]
+    #     print(f'modified_ind_value: {modified_ind_value} and shape: {modified_ind_value.shape}')
+    #     ind_fitness= ind[1]
+    #     print(f'ind_fitness: {ind_fitness}')
+    #     mutated_individual= uncorrelated_mutation_with_one_sigma(ind_value, 0.25, 1, 20)
         
 

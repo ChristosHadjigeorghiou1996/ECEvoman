@@ -7,7 +7,7 @@
 # imports framework
 import sys, os
 
-from numpy.core.fromnumeric import shape
+from numpy.core.fromnumeric import shape, size
 from numpy.lib import load
 from numpy.lib.function_base import average
 sys.path.insert(0, 'evoman') 
@@ -24,7 +24,7 @@ from random import choices, sample
 # time will enable timing of the algorithm
 import time
 # sqrt and exp for the uncorrelated mutation with one sigma
-from math import sqrt, exp
+from math import sqrt, exp, floor
 
 # choose this for not using visuals and thus making experiments faster
 headless = True
@@ -90,8 +90,10 @@ upper_limit_individual_value = 1
 # trim lower bound to 0 and upper bound to 1 for mutation
 probability_lower_bound = 0
 probability_upper_bound = 1
-# simple straightforward mutation 
-mutation_probability=0.25 # random number check literature
+# paper 
+mutation_probability=0.05
+crossover_probability= 0.80
+local_search_probability = 1.0  
 
 # instead of create_random_uniform_population, opt for smart intiialization
 # load the specialized_individuals once and only the remaining random in each time 
@@ -189,24 +191,26 @@ def get_population_information(population, env):
     # print(f'standard_deviation_population: {standard_deviation_population}')
     # print(f'combined_list_population_individuals_and_fitness: {combined_list_population_individuals_and_fitness}')
     
-    return combined_list_population_individuals_and_fitness, population_fitness_array, most_fit_value, most_fit_individual, mean_fitness_population, standard_deviation_population
+    return combined_list_population_individuals_and_fitness, population_fitness_array, most_fit_value, most_fit_individual, most_fit_value_position, mean_fitness_population, standard_deviation_population
 
 # randomly select two parents in the population and combine to produce children per alpha parameter --> random uniform  
-def crossover_two_parents_alpha_uniform(first_parent, second_parent):
-    # number_of_offspring_pairs= 1
-    # print(f'parent_one: {first_parent}\nand shape: {first_parent.shape[0]}')
-    # two children
-    # number_of_offsprings_array = np.zeros(shape=(number_of_offspring_pairs * 2, first_parent.shape[0]))
-    # print(f'number_of_offsprings_array\n{number_of_offsprings_array}\nand shape: {number_of_offsprings_array.shape}')
-    # for pair_position in range (number_of_offspring_pairs):
-    alpha_parameter= np.random.uniform(probability_lower_bound, probability_upper_bound)        
-        # print(f'alpha_parameter: {alpha_parameter}')
-    first_offspring= first_parent * alpha_parameter + second_parent * (1-alpha_parameter)
-    # sigma of new offspring will be calculated according to their parents 
-    # first_offspring[-1] = 1
-    # print(f'first_offspring: {first_offspring}\n and shape: {first_offspring.shape}')
-    # change the value of sigma for offspring to 1 
-    second_offspring= second_parent * alpha_parameter + first_parent * (1-alpha_parameter)
+def crossover_two_parents_alpha_uniform_crossover_probability(first_parent, second_parent):
+    # in this version, the parents will undergo cross over with a given probability # paper 0.8
+    specific_crossover_probability = np.random.uniform(probability_lower_bound, probability_upper_bound)
+    if specific_crossover_probability < crossover_probability:
+        # number_of_offspring_pairs= 1
+        # for pair_position in range (number_of_offspring_pairs):
+        alpha_parameter= np.random.uniform(probability_lower_bound, probability_upper_bound)        
+            # print(f'alpha_parameter: {alpha_parameter}')
+        first_offspring= first_parent * alpha_parameter + second_parent * (1-alpha_parameter)
+        # sigma of new offspring will be calculated according to their parents 
+        # first_offspring[-1] = 1
+        # print(f'first_offspring: {first_offspring}\n and shape: {first_offspring.shape}')
+        # change the value of sigma for offspring to 1 
+        second_offspring= second_parent * alpha_parameter + first_parent * (1-alpha_parameter)
+    else:
+        first_offspring = first_parent
+        second_offspring = second_parent
     # second_offspring[-1] = 1
     # print(f'second_offspring: {second_offspring}\n and shape: {second_offspring.shape}')
 
@@ -458,13 +462,66 @@ def uncorrelated_mutation_with_one_sigma(individual, probability_of_mutation):
     individual[individual.shape[0] - 1] = new_sigma_for_individual 
     # print(f'individual with new sigma: {individual}')
     return individual
-    
-def create_new_population_two_parents_two_offsprings(list_population_values_fitness, old_population, cur_generation, max_generations ):
-    # if there are 40 parents they will create 40 offsprings but at the beginning where only cur_generation individuals are 
-    # replaced, no need to create that much
-    # size_of_mating_population= min(cur_generation * 5, 40)
-    size_of_mating_population= min(cur_generation * 10, 60)
 
+# local search of population 
+def get_new_population_from_local_search(old_population_provided, old_population_fit_arr_provided, best_individual_value_position_previous_population_provided, max_fitness_old_gen, mean_fitness_old_gen, env):
+    # pre-initialize the random uniform probability for local search * kinda irrelevant as probability is 1 for local search
+    random_uniform_probability_local_search = np.random.uniform(probability_lower_bound, upper_limit_individual_value, size=old_population_provided.shape[0])
+    print(f'old_population_fit_arr_provided.shape[1]: {old_population_fit_arr_provided.shape[1]}')
+    print(f'sanity check: max_fit_old: {max_fitness_old_gen}, mean_fit_old: {mean_fitness_old_gen}')
+    print(f'sanity check: np.max(fit_arr_provided): {np.max(old_population_fit_arr_provided)}, np.mean(fit_arr_provided): {np.mean(old_population_fit_arr_provided)}')
+   # initialize temperature array which will be inversely proportional to max - average so that it considers the diversity which initially it will be large and then as it converges it will be stricter: > selection pressure
+   # feedback from previous generation to determine the temperature --> diversity & selection pressure anchor 
+    temperature= 1 / abs(max_fitness_old_gen - mean_fitness_old_gen)
+    print(f'temperature: {temperature}')
+    # rather than checking the position of the best individual vs all others, remove him from the array and add him as it should not be modified
+    print(f'check before delete:\n{old_population_provided[best_individual_value_position_previous_population_provided]}')
+    # delete the row 
+    best_individual_previous = old_population_provided[best_individual_value_position_previous_population_provided]
+    print(f'best_individual_previous: {best_individual_previous}')
+    remaining_population = np.delete(old_population_provided, best_individual_value_position_previous_population_provided, axis=0)
+    remaining_population_fitness= np.delete(old_population_fit_arr_provided, best_individual_value_position_previous_population_provided, axis=0)
+    print(f'remaining_population[best_individual_value_position_previous_population_provided]:\n{remaining_population[best_individual_value_position_previous_population_provided]}')
+    # perform local search to each individual 
+    for parent_position in range(remaining_population.shape[0]):
+        if random_uniform_probability_local_search[parent_position] <= local_search_probability:
+            # perform a different move operator than mutation # krasnogor 2002
+            # flip the value of a weight in the individual: if positive -> negative, if negative -> positive 
+            # use a random number between 1 and instance_size / 10 to choose the number of times this operator will alter the individual: paper
+            # don't consider sigma to change it from here 
+            max_number_of_bits_to_flip= floor((old_population_fit_arr_provided.shape[1] - 1)/ 10)
+            print(f'max_number_of_bits_to_flip: {max_number_of_bits_to_flip}')
+            number_of_bits_to_flip = np.random.uniform(1, max_number_of_bits_to_flip )
+            print(f'number_of_bits_to_flip: {number_of_bits_to_flip}')
+            # pre-assign the position of the number of the bit to flip in the individual
+            positions_to_flip_in_individual= np.random.uniform(0, old_population_fit_arr_provided.shape[1]-2, number_of_bits_to_flip)
+            print(f'individual before:\n{remaining_population[parent_position]}')
+            # for each position in the individual weight, flip that position's value
+            fitness_before= remaining_population_fitness[parent_position]
+            print(f'fitness_before:\n{remaining_population_fitness[fitness_before]}')
+            for position in positions_to_flip_in_individual:
+                print(f'position before:\n{remaining_population[parent_position][position]}')
+                remaining_population[parent_position][position] = remaining_population[parent_position][position] * -1 
+                print(f'position after:\n{remaining_population[parent_position][position]}')
+            print(f'individual after:\n{remaining_population[parent_position]}')        
+            modified_individual_information= test_individual(remaining_population[parent_position][:-1], env)
+            print(f'modified_individual_information: {modified_individual_information}')
+
+                 
+
+            #	Krasnogor’s Adaptive Boltzmann Operator 
+            # k = 0.01 (μ, λ)
+            # print('perform local ')
+    modified_generation = np.vstack(( remaining_population, best_individual_previous))
+    return modified_generation
+    
+def create_new_population_two_parents_two_offsprings(list_population_values_fitness, old_population, old_population_fitness_array, cur_generation, max_generations, best_individual_value_position_previous_population, max_fitness_old_generation, mean_fitness_old_generation ):
+    # this version will change the population (μ, λ) which is lowest selection pressure  all individuals are replaced except the best  
+    population_after_local_search= get_new_population_from_local_search(old_population, old_population_fitness_array, best_individual_value_position_previous_population, max_fitness_old_generation, mean_fitness_old_generation, env)
+
+
+
+    
     # stochastically create the mating population of k individuals by using sigma scaling and normalization
     # size of mating population is 40 constant 40 but try to make it lower for less than 30 for less generations  
     mating_population= choose_k_individuals_for_mating_stochastically_sigma_scaling(list_population_values_fitness, size_of_mating_population)
@@ -479,7 +536,7 @@ def create_new_population_two_parents_two_offsprings(list_population_values_fitn
         # print(f'parent_one: {parent_one}')
         parent_two= mating_population[position_counter + 1][0]
         # print(f'parent_two: {parent_two}')
-        offspring_one, offpsring_two= crossover_two_parents_alpha_uniform(parent_one, parent_two)
+        offspring_one, offpsring_two= crossover_two_parents_alpha_uniform_crossover_probability(parent_one, parent_two)
         mutated_offspring_one= uncorrelated_mutation_with_one_sigma(offspring_one, mutation_probability)
         # print(f'mutated_offspring_one:\n{mutated_offspring_one}\nand shape: {mutated_offspring_one.shape}')
         mutated_offspring_two= uncorrelated_mutation_with_one_sigma(offpsring_two, mutation_probability)
@@ -871,15 +928,15 @@ if __name__ == '__main__':
                 if new_generation == 0:
                     # flip the initialization_method for experiment type to change EA initialization method
                     # experiment_type[0] is the random initialization, [1] is the smart initialization
-                    initialization_method= experiment_type[0]
+                    initialization_method= experiment_type[1]
                     if initialization_method== experiment_type[0]:
                         generation_population = create_random_uniform_population(population_size, individuals_size_with_sigma)
                     elif initialization_method == experiment_type[1]:
                         generation_population = create_smart_population(specialized_individuals_population, population_size, individuals_size_with_sigma) 
                 else: 
-                    generation_population = create_new_population_two_parents_two_offsprings(combined_list_population_values_and_fitness, generation_population, new_generation, maximum_generations)
+                    generation_population = create_new_population_two_parents_two_offsprings(combined_list_population_values_and_fitness, generation_population, population_fitness_array, new_generation, maximum_generations, best_individual_value_position, best_individual_fitness, average_fitness_population, env)
                 # get population information
-                combined_list_population_values_and_fitness ,population_fitness_array, best_individual_fitness, best_individual_value, average_fitness_population, standard_deviation_population = get_population_information(generation_population, env) 
+                combined_list_population_values_and_fitness ,population_fitness_array, best_individual_fitness, best_individual_value, best_individual_value_position, average_fitness_population, standard_deviation_population = get_population_information(generation_population, env) 
 
                 # box plots 
                 best_individuals_fitness_populations_array[new_generation] = best_individual_fitness
