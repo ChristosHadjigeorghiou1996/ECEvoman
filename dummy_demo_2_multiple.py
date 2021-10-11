@@ -703,8 +703,8 @@ def visualize_box_plot(array, algorithm_name, enemy_list ):
         ax1.yaxis.grid(True, linestyle='-', which='major', color='lightgrey',alpha=0.5)
         ax1.set(
         axisbelow=True,  # Hide the grid behind plot objects
-        title='Mean Gain Of 10 Runs of Best Agent Per Group ',
-        xlabel='Group Fought Against',
+        title='Mean Gain Of 10 Runs of Best Agent Of 5 Runs',
+        xlabel='Group Trained Against',
         ylabel='Gain',
         )
         plt.savefig(f'{algorithm_name}_{enemy_list[counter]}_enemies_box_plot.png')

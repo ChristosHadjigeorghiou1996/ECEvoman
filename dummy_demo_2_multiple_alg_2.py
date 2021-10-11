@@ -472,18 +472,23 @@ def get_new_population_from_local_search(old_population_provided, old_population
     print(f'sanity check: np.max(fit_arr_provided): {np.max(old_population_fit_arr_provided)}, np.mean(fit_arr_provided): {np.mean(old_population_fit_arr_provided)}')
    # initialize temperature array which will be inversely proportional to max - average so that it considers the diversity which initially it will be large and then as it converges it will be stricter: > selection pressure
    # feedback from previous generation to determine the temperature --> diversity & selection pressure anchor 
+   #  Boltzmann distribution considering the current generation population's temperature 
     temperature= 1 / abs(max_fitness_old_gen - mean_fitness_old_gen)
     print(f'temperature: {temperature}')
     # rather than checking the position of the best individual vs all others, remove him from the array and add him as it should not be modified
     print(f'check before delete:\n{old_population_provided[best_individual_value_position_previous_population_provided]}')
     # delete the row 
     best_individual_previous = old_population_provided[best_individual_value_position_previous_population_provided]
-    print(f'best_individual_previous: {best_individual_previous}')
+    best_individual_fitness_previous = old_population_fit_arr_provided[best_individual_value_position_previous_population_provided]
+    print(f'best_individual_previous:\n {best_individual_previous}')
+    print(f'best_individual_fitness_previous: {best_individual_fitness_previous}')
+
     remaining_population = np.delete(old_population_provided, best_individual_value_position_previous_population_provided, axis=0)
     remaining_population_fitness= np.delete(old_population_fit_arr_provided, best_individual_value_position_previous_population_provided, axis=0)
     print(f'remaining_population[best_individual_value_position_previous_population_provided]:\n{remaining_population[best_individual_value_position_previous_population_provided]}')
     # perform local search to each individual 
     for parent_position in range(remaining_population.shape[0]):
+        # probability of local search now is set to 1 
         if random_uniform_probability_local_search[parent_position] <= local_search_probability:
             # perform a different move operator than mutation # krasnogor 2002
             # flip the value of a weight in the individual: if positive -> negative, if negative -> positive 
@@ -499,25 +504,49 @@ def get_new_population_from_local_search(old_population_provided, old_population
             # for each position in the individual weight, flip that position's value
             fitness_before= remaining_population_fitness[parent_position]
             print(f'fitness_before:\n{remaining_population_fitness[fitness_before]}')
+            # create a new individual which is going to be the same as the other individual before modification if it is not accepted
+            modified_individual= remaining_population[parent_position].copy()
+            print(f'modified_individual before:\n{modified_individual}')        
+            # get the position of each weight and flip it by multiplying with -1 
             for position in positions_to_flip_in_individual:
-                print(f'position before:\n{remaining_population[parent_position][position]}')
-                remaining_population[parent_position][position] = remaining_population[parent_position][position] * -1 
-                print(f'position after:\n{remaining_population[parent_position][position]}')
-            print(f'individual after:\n{remaining_population[parent_position]}')        
-            modified_individual_information= test_individual(remaining_population[parent_position][:-1], env)
+                print(f'modified_individual[position] before:\n{modified_individual[position]}')
+                modified_individual[position] = remaining_population[parent_position][position] * -1 
+                print(f'modified_individual[position] after:\n{modified_individual[position]}')
+            print(f'modified_individual after:\n{modified_individual}')        
+            modified_individual_information= test_individual(modified_individual[:-1], env)
             print(f'modified_individual_information: {modified_individual_information}')
-
-                 
+            # check if the new fitness is better than the old one then accept otherwise depends on probability 
+            if modified_individual_information[0] >= fitness_before:
+                print('modified individual is better thus replace')
+                remaining_population[parent_position]= modified_individual
+                remaining_population_fitness[parent_position] = modified_individual_information[0]
+                print(f'remaining_population_fitness after :{remaining_population_fitness[parent_position]}')
+                print(f'remaining_population[parent_position]:\n{remaining_population[parent_position]}')
+            else:
+                # check the difference
+                fitness_difference = fitness_before - modified_individual_information[0]
+                # k value is taken from the paper
+                k= 0.01 
+                threshold_to_replace_with_worse = np.exp( - k * fitness_difference * temperature)
+                # random uniform sample a probability from 0-1 to check if it is less than threshold in which is accepted even tho worse to get out of local optima
+                # otherwise just leave the individual as it is in the population
+                random_probability_to_replace_with_worse = np.random.uniform(probability_lower_bound, probability_upper_bound)
+                print(f'random_probability_to_replace_with_worse: {random_probability_to_replace_with_worse}')
+                if random_probability_to_replace_with_worse < threshold_to_replace_with_worse:
+                    remaining_population[parent_position]= modified_individual
+                    remaining_population_fitness[parent_position]= modified_individual_information[0]
+                    print(f' accept worse and remaining_population[parent_position]:\n{remaining_population[parent_position]}')               
 
             #	Krasnogor’s Adaptive Boltzmann Operator 
             # k = 0.01 (μ, λ)
             # print('perform local ')
     modified_generation = np.vstack(( remaining_population, best_individual_previous))
-    return modified_generation
+    modified_generation_fitness= np.vstack(( remaining_population_fitness, best_individual_fitness_previous))
+    return modified_generation, modified_generation_fitness
     
 def create_new_population_two_parents_two_offsprings(list_population_values_fitness, old_population, old_population_fitness_array, cur_generation, max_generations, best_individual_value_position_previous_population, max_fitness_old_generation, mean_fitness_old_generation ):
     # this version will change the population (μ, λ) which is lowest selection pressure  all individuals are replaced except the best  
-    population_after_local_search= get_new_population_from_local_search(old_population, old_population_fitness_array, best_individual_value_position_previous_population, max_fitness_old_generation, mean_fitness_old_generation, env)
+    population_after_local_search_array, population_fitness_after_local_search_array= get_new_population_from_local_search(old_population, old_population_fitness_array, best_individual_value_position_previous_population, max_fitness_old_generation, mean_fitness_old_generation, env)
 
 
 
