@@ -2,6 +2,7 @@
 import numpy as np
 from numpy import array
 from math import sqrt, exp
+import random
 
 probability_lower_bound = 0
 probability_upper_bound = 1 
@@ -158,8 +159,48 @@ def uncorrelated_mutation_with_one_sigma(individual, probability_of_mutation, cu
     print(f'individual with new sigma: {individual}')
     return individual 
 
+def check_np_ceil():
+    generation_list = list(np.arange(1, 30))
+    print(f'generation_list:\n{generation_list}')
+    for gen_counter in generation_list:
+        size_of_k = max(2,  int(np.ceil(gen_counter/8)) )
+        print(f'gen_counter: {gen_counter} and size_of_k: {size_of_k}')
+
+def check_double_counter():
+    list_up_to_x = np.arange(6)
+    print(f'list_up_to_x: {list_up_to_x}')
+    identical_list = np.zeros(shape=list_up_to_x.shape)
+    print(f'identical_list: {identical_list}')
+    for i in range(0, len(list_up_to_x), 2):
+        identical_list[i] = i + 10
+        identical_list[i+1] = i + 11
+    print(f'identical_list: {identical_list}')
+
+
+# random sample and replace - Works 
+def random_sample_individuals():
+    actual_list = np.array(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'])
+    print(f'actual_list:\n{actual_list}')
+    index_list = list(np.arange(len(actual_list)))
+    print(f'index_list:\n{index_list}')
+    individuals_to_remove = 4
+    index_individual_to_replace = random.sample(index_list, individuals_to_remove)
+    # preinitialize the array of random uniform individuals to replace them faster
+    individuals_to_replace_with= np.array([ 'w', 'x', 'y', 'z'])
+    print(f'index_individual_to_replace:\n{index_individual_to_replace}')
+    for index_individual_to_remove in range(len(index_individual_to_replace)):
+        print(f'index_individual_to_remove: {index_individual_to_remove} which is in index_individual_to_replace: {index_individual_to_replace[index_individual_to_remove]} ')
+        print(f'Replaced with: {individuals_to_replace_with[index_individual_to_remove]}')
+        actual_list[index_individual_to_replace[index_individual_to_remove]] = individuals_to_replace_with[index_individual_to_remove]
+    print(f'afterwards, actual_list:\n{actual_list}')
+
+
+    
+
+
 if __name__ == '__main__':
-    print(type(combined_list_population_individual_fitness))
+    check_double_counter()
+    # print(type(combined_list_population_individual_fitness))
     # for ind in combined_list_population_individual_fitness:
     #     ind_value= ind[0]
     #     print(f'ind_value: {ind_value} and shape: {ind_value.shape}')
