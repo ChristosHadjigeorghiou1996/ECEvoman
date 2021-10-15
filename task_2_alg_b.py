@@ -79,7 +79,7 @@ maximum_generations = 30
 total_runs = 10
 
 # max iterations to run without improvement to indicate stagnation
-maximum_stagnation_counter = 15; 
+maximum_stagnation_counter = 15 
 
 # parameters for random initialization being between -1 and 1 to be able to change direction
 lower_limit_individual_value = -1
@@ -739,10 +739,11 @@ def new_cons_multi(values):
 def stagnation_escape_function( population_provided):
     # continue from here
     print('***************************STAGNATION******************************')
-    number_of_individuals_to_replace = population_provided.shape[0] / 5
+    number_of_individuals_to_replace = int(population_provided.shape[0] / 5)
     index_list_of_individuals_to_replace = list(np.arange(population_provided.shape[0]))
     # sample without repeatition each individual's index to be replaced 
     index_individual_to_replace = sample(index_list_of_individuals_to_replace, number_of_individuals_to_replace)
+    # print(f'index_individual_to_replace:\n{index_individual_to_replace}')
     # preinitialize the array of random uniform individuals to replace them faster
     individuals_to_replace_with= np.random.uniform(lower_limit_individual_value, upper_limit_individual_value, size=(number_of_individuals_to_replace, individuals_size_with_sigma)) 
     # change their sigma to 1 
@@ -897,7 +898,7 @@ if __name__ == '__main__':
                     # increment the stagnation value and check if it reached cap for 
                     stagnation_current_value = stagnation_current_value + 1 
                     if stagnation_current_value == maximum_stagnation_counter:
-                        print('****Reach stagnation limit, call function to randomize percentage *************')
+                        print('****Reach stagnation limit, call function to randomize pop next gen *************')
                         stagnation_function_next_generation_switch = True                     
 
 
